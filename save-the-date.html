@@ -1,132 +1,231 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Handy Schüttel-Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f0f0f0;
-            padding: 50px 20px;
-            transition: background 0.3s ease;
-            user-select: none;
-        }
-        #actionBtn {
-            padding: 15px 40px;
-            font-size: 22px;
-            font-weight: bold;
-            cursor: pointer;
-            background-color: #28a745; /* Grüner Button */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        #actionBtn:active {
-            transform: scale(0.98);
-        }
-        #status {
-            margin-top: 30px;
-            font-weight: bold;
-            font-size: 20px;
-            color: #333;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4ec">
+<title>Meine Sechziger starten jetzt</title>
+<style>
+  :root {
+    --cream: #f6f4ec;
+    --gold-dark: #704816;
+    --gold: #b58a3d;
+    --gold-light: #f2df9c;
+    --ink: #56380f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--cream); }
+  body {
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    padding: max(16px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+    overflow: hidden;
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    background:
+      radial-gradient(ellipse at 50% 45%, rgba(255,255,255,.7), transparent 68%),
+      var(--cream);
+  }
+  .stage {
+    width: min(100%, 540px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .emblem {
+    width: 100%;
+    max-height: 76svh;
+    overflow: visible;
+  }
+  .ring {
+    fill: none;
+    stroke: url(#goldStroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transform-box: view-box;
+    transform-origin: 500px 500px;
+    stroke-dasharray: 3000;
+    stroke-dashoffset: 3000;
+    animation: draw-ring 1.7s cubic-bezier(.22,.7,.2,1) forwards;
+  }
+  .ring.outer { stroke-width: 10; animation-delay: .08s; }
+  .ring.outer-highlight { stroke-width: 2.5; animation-delay: .18s; }
+  .ring.inner { stroke-width: 5.5; animation-delay: .42s; }
+  .ring.inner-highlight { stroke-width: 2.2; animation-delay: .56s; }
+  
+  /* Wortweise Animation für das Erscheinen */
+  .text-line {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: text-arrive .65s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  .line-1 { animation-delay: .95s; }
+  .line-2 { animation-delay: 1.15s; }
+  .line-3 { animation-delay: 1.36s; }
+  .line-4 { animation-delay: 1.57s; }
+
+  .start-button {
+    appearance: none;
+    border: 1px solid #8d672b;
+    border-radius: 999px;
+    margin-top: clamp(8px, 2.6vh, 22px);
+    min-height: 54px;
+    width: min(82%, 320px);
+    padding: 14px 28px;
+    color: #fffdf6;
+    background: linear-gradient(130deg, #7b541c 0%, #c09a4c 48%, #8c6326 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.65), 0 4px 12px rgba(105,76,29,.18);
+    font: 600 1.08rem/1.2 Georgia, "Times New Roman", serif;
+    letter-spacing: .035em;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: opacity .5s ease, transform .5s ease, visibility .5s;
+  }
+  .start-button.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+  .start-button:focus-visible { outline: 3px solid #5b421d; outline-offset: 4px; }
+  .status {
+    min-height: 1.25em;
+    margin: 10px 8px 0;
+    font: 12px/1.4 system-ui, sans-serif;
+    text-align: center;
+    color: #786747;
+  }
+
+  /* Beim Klick: Erst verschwinden die Kreise, danach erst baut sich der Text zeilenweise ab */
+  .leaving .ring.outer { animation: ring-out 0.9s ease-in forwards; }
+  .leaving .ring.outer-highlight { animation: ring-out-reverse 0.8s ease-in forwards; }
+  .leaving .ring.inner { animation: ring-out-reverse 0.85s ease-in forwards; }
+  .leaving .ring.inner-highlight { animation: ring-out 0.95s ease-in forwards; }
+  
+  /* Text-Abbau startet erst nach 0.9 Sekunden (wenn die Kreise weg sind) und läuft zeilenweise nacheinander */
+  .leaving .line-1 { animation: text-out 0.45s ease-in 0.90s forwards; }
+  .leaving .line-2 { animation: text-out 0.45s ease-in 1.02s forwards; }
+  .leaving .line-3 { animation: text-out 0.45s ease-in 1.14s forwards; }
+  .leaving .line-4 { animation: text-out 0.45s ease-in 1.26s forwards; }
+
+  .leaving .start-button { opacity: 0; transform: translateY(10px) scale(.97); pointer-events: none; transition: opacity 0.3s ease; }
+  .leaving .status { opacity: 0; transition: opacity 0.3s ease; }
+
+  @keyframes draw-ring { to { stroke-dashoffset: 0; } }
+  @keyframes text-arrive {
+    from { opacity: 0; transform: translateY(18px) scale(.94); filter: blur(3px); }
+    to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+  @keyframes ring-out {
+    to { opacity: 0; transform: rotate(24deg) scale(1.08); stroke-dashoffset: -3000; }
+  }
+  @keyframes ring-out-reverse {
+    to { opacity: 0; transform: rotate(-28deg) scale(.9); stroke-dashoffset: 3000; }
+  }
+  @keyframes text-out {
+    to { opacity: 0; transform: translateY(-20px) scale(.88); filter: blur(4px); }
+  }
+  @media (max-height: 650px) {
+    .emblem { max-height: 68svh; }
+    .start-button { min-height: 48px; margin-top: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ring { animation-duration: .01ms; animation-delay: 0s !important; stroke-dashoffset: 0; }
+    .text-line { animation-duration: .01ms; animation-delay: 0s !important; opacity: 1; }
+    .start-button { transition: none; }
+    .leaving .ring, .leaving .text-line { animation-duration: .01ms; }
+  }
+</style>
 </head>
 <body>
+<main class="stage" id="stage" aria-label="Meine Sechziger starten jetzt">
+  <svg class="emblem" viewBox="0 0 1000 1000" role="img" aria-labelledby="title description">
+    <title id="title">Meine Sechziger starten jetzt</title>
+    <desc id="description">Goldene Schrift innerhalb mehrerer feiner, kreisförmiger Goldlinien auf cremefarbenem Hintergrund.</desc>
+    <defs>
+      <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff0a8"/>
+        <stop offset=".17" stop-color="#a87522"/>
+        <stop offset=".3" stop-color="#f9e6a0"/>
+        <stop offset=".47" stop-color="#8a5b18"/>
+        <stop offset=".62" stop-color="#e4c36b"/>
+        <stop offset=".79" stop-color="#9b6b21"/>
+        <stop offset="1" stop-color="#f5df91"/>
+      </linearGradient>
 
-    <h1>Schüttle dein Handy!</h1>
-    <p>Klicke auf den Button, um den Schüttel-Modus zu starten.</p>
-    
-    <!-- Der Button ist jetzt dauerhaft da -->
-    <button id="actionBtn">Los geht's!</button>
-    <div id="status">Status: Wartet auf Start...</div>
+      <!-- Perfekt eingepasste Ausschnitt-Masken -->
+      <clipPath id="clip-line1"><rect x="250" y="220" width="500" height="140" /></clipPath>
+      <clipPath id="clip-line2"><rect x="80" y="350" width="840" height="140" /></clipPath>
+      <clipPath id="clip-line3"><rect x="280" y="480" width="640" height="140" /></clipPath>
+      <clipPath id="clip-line4"><rect x="180" y="610" width="640" height="140" /></clipPath>
+    </defs>
 
-    <script>
-        const actionBtn = document.getElementById('actionBtn');
-        const statusDiv = document.getElementById('status');
-        
-        let lastX = 0, lastY = 0, lastZ = 0;
-        let lastTime = 0;
-        const SHAKE_THRESHOLD = 12; // Empfindlichkeit beim Schütteln
+    <!-- Einzelne animierte Ringbahnen -->
+    <circle class="ring outer" cx="500" cy="500" r="414"/>
+    <circle class="ring outer-highlight" cx="500" cy="500" r="426"
+      stroke-dasharray="2450 230" stroke-dashoffset="95"/>
+    <circle class="ring inner" cx="500" cy="500" r="382"
+      stroke-dasharray="2210 190" stroke-dashoffset="65"/>
+    <circle class="ring inner-highlight" cx="500" cy="500" r="370"
+      stroke-dasharray="2150 175" stroke-dashoffset="150"/>
 
-        // Klick-Event für den Button
-        actionBtn.addEventListener('click', () => {
-            // Prüfen, ob es ein iPhone/iOS ist, das eine Erlaubnis verlangt
-            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            startTracking();
-                        } else {
-                            statusDiv.innerText = "Zugriff auf Sensoren verweigert.";
-                        }
-                    })
-                    .catch(err => {
-                        statusDiv.innerText = "Fehler: " + err;
-                    });
-            } else {
-                // Für Android und Desktop-Browser direkt starten
-                startTracking();
-            }
-        });
+    <!-- Perfekt skalierter und eingepasster PNG-Schriftzug -->
+    <image class="text-line line-1" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line1)" preserveAspectRatio="xMidYMid meet" />
+    <image class="text-line line-2" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line2)" preserveAspectRatio="xMidYMid meet" />
+    <image class="text-line line-3" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line3)" preserveAspectRatio="xMidYMid meet" />
+    <image class="text-line line-4" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line4)" preserveAspectRatio="xMidYMid meet" />
+  </svg>
 
-        function startTracking() {
-            window.addEventListener('devicemotion', handleMotion);
-            statusDiv.innerText = "Bereit! Schüttle jetzt dein Handy. 🎉";
-            actionBtn.style.display = 'none'; // Blendet den Button nach dem Klick aus
+  <button class="start-button" id="startButton" type="button">Los geht's</button>
+  <p class="status" id="status" aria-live="polite"></p>
+</main>
+<script>
+  const stage = document.getElementById('stage');
+  const button = document.getElementById('startButton');
+  const status = document.getElementById('status');
+  let started = false;
+
+  window.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(() => button.classList.add('visible'), 3000);
+  });
+
+  button.addEventListener('click', () => {
+    if (started) return;
+    started = true;
+
+    let permissionRequest = null;
+    if (typeof DeviceMotionEvent !== 'undefined' &&
+        typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        permissionRequest = DeviceMotionEvent.requestPermission();
+      } catch (error) {
+        permissionRequest = Promise.reject(error);
+      }
+    }
+
+    stage.classList.add('leaving');
+    button.disabled = true;
+
+    if (permissionRequest) {
+      permissionRequest.then((result) => {
+        if (result === 'granted') {
+          status.textContent = 'Sensorzugriff erlaubt. Die Schüttelfunktion können wir als Nächstes einbauen.';
+          window.addEventListener('devicemotion', () => {}, { once: true });
+        } else {
+          status.textContent = 'Kein Sensorzugriff erteilt. Du kannst trotzdem fortfahren.';
         }
+      }).catch(() => {
+        status.textContent = 'Sensorzugriff ist nicht verfügbar. Bitte später im Browser prüfen.';
+      });
+    } else if (typeof DeviceMotionEvent !== 'undefined') {
+      status.textContent = 'Der Browser unterstützt Bewegungsdaten möglicherweise ohne separate Abfrage.';
+    } else {
+      status.textContent = 'Dieser Browser stellt keine Bewegungsdaten bereit.';
+    }
 
-        function handleMotion(event) {
-            // Nutzen der reinen Beschleunigung ohne Schwerkraft gegen das Dauerschütteln
-            let acc = event.acceleration; 
-            
-            // Fallback für ältere Browser/Systeme
-            if (!acc || acc.x === null) {
-                acc = event.accelerationIncludingGravity;
-            }
-
-            if (!acc || acc.x === null) return;
-
-            let currentTime = Date.now();
-            if ((currentTime - lastTime) > 100) { 
-                let diffTime = currentTime - lastTime;
-                lastTime = currentTime;
-
-                // Bewegungsänderung berechnen
-                let deltaX = Math.abs(acc.x - lastX);
-                let deltaY = Math.abs(acc.y - lastY);
-                let deltaZ = Math.abs(acc.z - lastZ);
-
-                // Schütteln wird nur erkannt, wenn sich mindestens zwei Achsen stark bewegen
-                if ((deltaX > SHAKE_THRESHOLD && deltaY > SHAKE_THRESHOLD) || 
-                    (deltaX > SHAKE_THRESHOLD && deltaZ > SHAKE_THRESHOLD) || 
-                    (deltaY > SHAKE_THRESHOLD && deltaZ > SHAKE_THRESHOLD)) {
-                    
-                    triggerShakeAction();
-                }
-
-                lastX = acc.x;
-                lastY = acc.y;
-                lastZ = acc.z;
-            }
-        }
-
-        function triggerShakeAction() {
-            statusDiv.innerText = "Schütteln erkannt! 🚀";
-            
-            // Ändert die Hintergrundfarbe zufällig
-            const randomColor = Math.floor(Math.random()*16777215).toString(16);
-            document.body.style.backgroundColor = "#" + randomColor;
-
-            // Nach 800 Millisekunden Text wieder zurücksetzen
-            setTimeout(() => {
-                statusDiv.innerText = "Bereit für das nächste Schütteln...";
-            }, 800);
-        }
-    </script>
+    window.setTimeout(() => {
+      status.textContent = status.textContent || 'Bereit für den nächsten Schritt.';
+    }, 1200);
+  });
+</script>
 </body>
 </html>
