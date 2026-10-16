@@ -11,77 +11,101 @@
             background-color: #f0f0f0;
             padding: 50px 20px;
             transition: background 0.3s ease;
+            user-select: none;
         }
-        button {
-            padding: 15px 30px;
-            font-size: 18px;
+        #actionBtn {
+            padding: 15px 40px;
+            font-size: 22px;
+            font-weight: bold;
             cursor: pointer;
-            background-color: #007bff;
+            background-color: #28a745; /* Grüner Button */
             color: white;
             border: none;
             border-radius: 5px;
             margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #actionBtn:active {
+            transform: scale(0.98);
         }
         #status {
-            margin-top: 20px;
+            margin-top: 30px;
             font-weight: bold;
+            font-size: 20px;
+            color: #333;
         }
     </style>
 </head>
 <body>
 
     <h1>Schüttle dein Handy!</h1>
-    <p>Klicke zuerst auf den Button, um die Sensoren zu aktivieren (besonders wichtig für iPhones).</p>
+    <p>Klicke auf den Button, um den Schüttel-Modus zu starten.</p>
     
-    <button id="requestBtn">Sensoren aktivieren</button>
-    <div id="status">Status: Wartet auf Aktivierung...</div>
+    <!-- Der Button ist jetzt dauerhaft da -->
+    <button id="actionBtn">Los geht's!</button>
+    <div id="status">Status: Wartet auf Start...</div>
 
     <script>
-        const requestBtn = document.getElementById('requestBtn');
+        const actionBtn = document.getElementById('actionBtn');
         const statusDiv = document.getElementById('status');
         
-        // Variablen für die Schüttel-Logik
-        let lastX = null, lastY = null, lastZ = null;
+        let lastX = 0, lastY = 0, lastZ = 0;
         let lastTime = 0;
-        const SHAKE_THRESHOLD = 15; // Wie stark muss geschüttelt werden?
+        const SHAKE_THRESHOLD = 12; // Empfindlichkeit beim Schütteln
 
-        requestBtn.addEventListener('click', () => {
-            // Prüfen, ob iOS eine Erlaubnis verlangt
-            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        // Klick-Event für den Button
+        actionBtn.addEventListener('click', () => {
+            // Prüfen, ob es ein iPhone/iOS ist, das eine Erlaubnis verlangt
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission()
                     .then(permissionState => {
                         if (permissionState === 'granted') {
                             startTracking();
                         } else {
-                            statusDiv.innerText = "Zugriff verweigert.";
+                            statusDiv.innerText = "Zugriff auf Sensoren verweigert.";
                         }
                     })
-                    .catch(console.error);
+                    .catch(err => {
+                        statusDiv.innerText = "Fehler: " + err;
+                    });
             } else {
-                // Für Android und Browser, die keine explizite Erlaubnis brauchen
+                // Für Android und Desktop-Browser direkt starten
                 startTracking();
             }
         });
 
         function startTracking() {
             window.addEventListener('devicemotion', handleMotion);
-            statusDiv.innerText = "Bereit! Schüttle jetzt dein Handy.";
-            requestBtn.style.display = 'none'; // Button ausblenden
+            statusDiv.innerText = "Bereit! Schüttle jetzt dein Handy. 🎉";
+            actionBtn.style.display = 'none'; // Blendet den Button nach dem Klick aus
         }
 
         function handleMotion(event) {
-            let acc = event.accelerationIncludingGravity;
-            if (!acc.x) return;
+            // Nutzen der reinen Beschleunigung ohne Schwerkraft gegen das Dauerschütteln
+            let acc = event.acceleration; 
+            
+            // Fallback für ältere Browser/Systeme
+            if (!acc || acc.x === null) {
+                acc = event.accelerationIncludingGravity;
+            }
+
+            if (!acc || acc.x === null) return;
 
             let currentTime = Date.now();
-            if ((currentTime - lastTime) > 100) { // Nur alle 100ms prüfen
+            if ((currentTime - lastTime) > 100) { 
                 let diffTime = currentTime - lastTime;
                 lastTime = currentTime;
 
-                // Geschwindigkeit der Bewegung berechnen
-                let speed = Math.abs(acc.x + acc.y + acc.z - lastX - lastY - lastZ) / diffTime * 10000;
+                // Bewegungsänderung berechnen
+                let deltaX = Math.abs(acc.x - lastX);
+                let deltaY = Math.abs(acc.y - lastY);
+                let deltaZ = Math.abs(acc.z - lastZ);
 
-                if (speed > SHAKE_THRESHOLD) {
+                // Schütteln wird nur erkannt, wenn sich mindestens zwei Achsen stark bewegen
+                if ((deltaX > SHAKE_THRESHOLD && deltaY > SHAKE_THRESHOLD) || 
+                    (deltaX > SHAKE_THRESHOLD && deltaZ > SHAKE_THRESHOLD) || 
+                    (deltaY > SHAKE_THRESHOLD && deltaZ > SHAKE_THRESHOLD)) {
+                    
                     triggerShakeAction();
                 }
 
@@ -91,18 +115,17 @@
             }
         }
 
-        // Diese Funktion wird ausgeführt, wenn das Handy geschüttelt wird
         function triggerShakeAction() {
-            statusDiv.innerText = "Schütteln erkannt! 🎉";
+            statusDiv.innerText = "Schütteln erkannt! 🚀";
             
-            // Ändert zufällig die Hintergrundfarbe der Seite
+            // Ändert die Hintergrundfarbe zufällig
             const randomColor = Math.floor(Math.random()*16777215).toString(16);
             document.body.style.backgroundColor = "#" + randomColor;
 
-            // Nach 1 Sekunde Text zurücksetzen
+            // Nach 800 Millisekunden Text wieder zurücksetzen
             setTimeout(() => {
                 statusDiv.innerText = "Bereit für das nächste Schütteln...";
-            }, 1000);
+            }, 800);
         }
     </script>
 </body>
