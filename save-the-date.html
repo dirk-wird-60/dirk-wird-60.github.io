@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handy Schüttel-Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 50px 20px;
+            transition: background 0.3s ease;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Schüttle dein Handy!</h1>
+    <p>Klicke zuerst auf den Button, um die Sensoren zu aktivieren (besonders wichtig für iPhones).</p>
+    
+    <button id="requestBtn">Sensoren aktivieren</button>
+    <div id="status">Status: Wartet auf Aktivierung...</div>
+
+    <script>
+        const requestBtn = document.getElementById('requestBtn');
+        const statusDiv = document.getElementById('status');
+        
+        // Variablen für die Schüttel-Logik
+        let lastX = null, lastY = null, lastZ = null;
+        let lastTime = 0;
+        const SHAKE_THRESHOLD = 15; // Wie stark muss geschüttelt werden?
+
+        requestBtn.addEventListener('click', () => {
+            // Prüfen, ob iOS eine Erlaubnis verlangt
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            startTracking();
+                        } else {
+                            statusDiv.innerText = "Zugriff verweigert.";
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Für Android und Browser, die keine explizite Erlaubnis brauchen
+                startTracking();
+            }
+        });
+
+        function startTracking() {
+            window.addEventListener('devicemotion', handleMotion);
+            statusDiv.innerText = "Bereit! Schüttle jetzt dein Handy.";
+            requestBtn.style.display = 'none'; // Button ausblenden
+        }
+
+        function handleMotion(event) {
+            let acc = event.accelerationIncludingGravity;
+            if (!acc.x) return;
+
+            let currentTime = Date.now();
+            if ((currentTime - lastTime) > 100) { // Nur alle 100ms prüfen
+                let diffTime = currentTime - lastTime;
+                lastTime = currentTime;
+
+                // Geschwindigkeit der Bewegung berechnen
+                let speed = Math.abs(acc.x + acc.y + acc.z - lastX - lastY - lastZ) / diffTime * 10000;
+
+                if (speed > SHAKE_THRESHOLD) {
+                    triggerShakeAction();
+                }
+
+                lastX = acc.x;
+                lastY = acc.y;
+                lastZ = acc.z;
+            }
+        }
+
+        // Diese Funktion wird ausgeführt, wenn das Handy geschüttelt wird
+        function triggerShakeAction() {
+            statusDiv.innerText = "Schütteln erkannt! 🎉";
+            
+            // Ändert zufällig die Hintergrundfarbe der Seite
+            const randomColor = Math.floor(Math.random()*16777215).toString(16);
+            document.body.style.backgroundColor = "#" + randomColor;
+
+            // Nach 1 Sekunde Text zurücksetzen
+            setTimeout(() => {
+                statusDiv.innerText = "Bereit für das nächste Schütteln...";
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
