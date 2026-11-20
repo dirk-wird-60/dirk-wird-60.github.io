@@ -1,1 +1,1118 @@
-Dirk wird 60!
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f4ec">
+  <title>Meine Sechziger starten jetzt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cinzel:wght@600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #f6f4ec;
+      --gold-dark: #704816;
+      --gold: #b58a3d;
+      --gold-light: #f2df9c;
+      --ink: #56380f;
+      --velvet-dark: #3b040a;
+      --velvet-mid: #5a0912;
+      --velvet-light: #8f1422;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--cream);
+    }
+
+    body {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: max(16px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+      overflow: hidden;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(ellipse at 50% 45%, rgba(255,255,255,.7), transparent 68%),
+        var(--cream);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* --- Einstiegs-Bühne --- */
+    .stage {
+      width: min(100%, 540px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .stage.hidden {
+      display: none;
+    }
+
+    .emblem {
+      width: 100%;
+      max-height: 70svh;
+      overflow: visible;
+    }
+
+    .ring {
+      fill: none;
+      stroke: url(#goldStroke);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transform-box: view-box;
+      transform-origin: 500px 500px;
+      stroke-dasharray: 3000;
+      stroke-dashoffset: 3000;
+      animation: draw-ring 1.7s cubic-bezier(.22,.7,.2,1) forwards;
+    }
+
+    .ring.outer { stroke-width: 10; animation-delay: .08s; }
+    .ring.outer-highlight { stroke-width: 2.5; animation-delay: .18s; }
+    .ring.inner { stroke-width: 5.5; animation-delay: .42s; }
+    .ring.inner-highlight { stroke-width: 2.2; animation-delay: .56s; }
+
+    .text-line {
+      opacity: 0;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: text-arrive .65s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+
+    .line-1 { animation-delay: .95s; }
+    .line-2 { animation-delay: 1.15s; }
+    .line-3 { animation-delay: 1.36s; }
+    .line-4 { animation-delay: 1.57s; }
+
+    .start-button {
+      appearance: none;
+      border: 1px solid #8d672b;
+      border-radius: 999px;
+      margin-top: clamp(8px, 2.2vh, 20px);
+      min-height: 54px;
+      width: min(82%, 320px);
+      padding: 14px 28px;
+      color: #fffdf6;
+      background: linear-gradient(130deg, #7b541c 0%, #c09a4c 48%, #8c6326 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.65), 0 4px 12px rgba(105,76,29,.18);
+      font: 600 1.08rem/1.2 Georgia, "Times New Roman", serif;
+      letter-spacing: .035em;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity .5s ease, transform .5s ease, visibility .5s;
+      touch-action: manipulation;
+    }
+
+    .start-button.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .volume-hint {
+      margin: clamp(10px, 1.8vh, 14px) 0 0;
+      padding: 4px 12px;
+      text-align: center;
+      font: 600 clamp(0.84rem, 3.4vw, 0.94rem)/1.35 Georgia, "Times New Roman", serif;
+      letter-spacing: .02em;
+      color: var(--gold-dark);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(6px);
+      transition: opacity .5s ease .12s, transform .5s ease .12s, visibility .5s .12s;
+    }
+
+    .volume-hint.visible {
+      opacity: 0.92;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .leaving .ring.outer { animation: ring-out 0.9s ease-in forwards; }
+    .leaving .ring.outer-highlight { animation: ring-out-reverse 0.8s ease-in forwards; }
+    .leaving .ring.inner { animation: ring-out-reverse 0.85s ease-in forwards; }
+    .leaving .ring.inner-highlight { animation: ring-out 0.95s ease-in forwards; }
+
+    .leaving .line-1 { animation: text-out 0.45s ease-in 0.90s forwards; }
+    .leaving .line-2 { animation: text-out 0.45s ease-in 1.02s forwards; }
+    .leaving .line-3 { animation: text-out 0.45s ease-in 1.14s forwards; }
+    .leaving .line-4 { animation: text-out 0.45s ease-in 1.26s forwards; }
+
+    .leaving .start-button,
+    .leaving .volume-hint {
+      opacity: 0;
+      transform: translateY(10px) scale(.97);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    @keyframes draw-ring {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes text-arrive {
+      from { opacity: 0; transform: translateY(18px) scale(.94); filter: blur(3px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes ring-out {
+      to { opacity: 0; transform: rotate(24deg) scale(1.08); stroke-dashoffset: -3000; }
+    }
+
+    @keyframes ring-out-reverse {
+      to { opacity: 0; transform: rotate(-28deg) scale(.9); stroke-dashoffset: 3000; }
+    }
+
+    @keyframes text-out {
+      to { opacity: 0; transform: translateY(-20px) scale(.88); filter: blur(4px); }
+    }
+
+    @media (max-height: 650px) {
+      .emblem { max-height: 62svh; }
+      .start-button { min-height: 46px; margin-top: 6px; padding: 11px 24px; }
+      .volume-hint { margin-top: 7px; font-size: 0.82rem; }
+    }
+
+    /* --- Interaktive Bühne mit Laternen-Hintergrund --- */
+    .invitation-stage {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100svh;
+      padding: 0;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 20;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .invitation-stage.ready {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .scene-photo {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100svh;
+      object-fit: cover;
+      object-position: center center;
+      display: block;
+      filter: brightness(0.24) saturate(0.68) contrast(1.04);
+      transition: filter 1.25s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: filter;
+      pointer-events: none;
+    }
+
+    .invitation-stage[data-level="1"] .scene-photo {
+      filter: brightness(0.56) saturate(0.92) contrast(1.03);
+    }
+
+    .invitation-stage[data-level="2"] .scene-photo {
+      filter: brightness(0.84) saturate(1.06) contrast(1.02);
+    }
+
+    .invitation-stage[data-level="3"] .scene-photo {
+      filter: brightness(1.08) saturate(1.14) contrast(1.02);
+    }
+
+    /* Sanfte atmosphärische Farbstimmung über das Bild */
+    .mood-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 198, 92, 0.22) 0%, rgba(16, 18, 36, 0.62) 100%);
+      opacity: 0.92;
+      mix-blend-mode: multiply;
+      transition: opacity 1.25s cubic-bezier(0.22, 1, 0.36, 1), background 1.25s ease;
+      will-change: opacity;
+    }
+
+    .invitation-stage[data-level="1"] .mood-overlay {
+      opacity: 0.52;
+      mix-blend-mode: soft-light;
+      background: radial-gradient(circle at 46% 32%, rgba(255, 196, 88, 0.42) 0%, rgba(120, 48, 12, 0.28) 100%);
+    }
+
+    .invitation-stage[data-level="2"] .mood-overlay {
+      opacity: 0.68;
+      mix-blend-mode: screen;
+      background: radial-gradient(circle at 52% 38%, rgba(255, 204, 102, 0.28) 0%, rgba(255, 158, 56, 0.08) 75%);
+    }
+
+    .invitation-stage[data-level="3"] .mood-overlay {
+      opacity: 0.85;
+      mix-blend-mode: screen;
+      background: radial-gradient(circle at 50% 34%, rgba(255, 224, 140, 0.34) 0%, rgba(255, 178, 72, 0.12) 78%);
+    }
+
+    /* Layer für einzelne Laternen-Lichthöfe und großzügige Touch-Zonen */
+    .lantern-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .lantern-node {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: clamp(68px, 19vw, 108px);
+      height: clamp(68px, 19vw, 108px);
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: auto;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      touch-action: manipulation;
+    }
+
+    .lantern-glow {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 232, 150, 0.88) 0%,
+        rgba(255, 176, 56, 0.48) 36%,
+        rgba(245, 120, 28, 0.14) 62%,
+        transparent 74%
+      );
+      filter: blur(6px);
+      opacity: 0;
+      transform: scale(0.55);
+      transition: opacity 1.05s cubic-bezier(0.22, 1, 0.36, 1), transform 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: opacity, transform;
+      pointer-events: none;
+    }
+
+    .lantern-node.lit .lantern-glow {
+      opacity: 0.85;
+      transform: scale(1.15);
+    }
+
+    .invitation-stage[data-level="3"] .lantern-node.lit .lantern-glow {
+      opacity: 1;
+      transform: scale(1.38);
+    }
+
+    /* --- Winkekatze mittig auf der Straße --- */
+    .maneki-wrap {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(9svh, 13svh, 16svh);
+      width: clamp(96px, 27vw, 146px);
+      aspect-ratio: 1 / 1;
+      transform: translateX(-50%);
+      z-index: 4;
+      pointer-events: none;
+      filter:
+        brightness(0.32)
+        saturate(0.72)
+        drop-shadow(0 10px 14px rgba(0, 0, 0, 0.72));
+      transition: filter 1.25s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: filter;
+    }
+
+    .invitation-stage[data-level="1"] .maneki-wrap {
+      filter:
+        brightness(0.62)
+        saturate(0.95)
+        drop-shadow(0 10px 16px rgba(0, 0, 0, 0.62));
+    }
+
+    .invitation-stage[data-level="2"] .maneki-wrap {
+      filter:
+        brightness(0.9)
+        saturate(1.06)
+        drop-shadow(0 12px 18px rgba(0, 0, 0, 0.52))
+        drop-shadow(0 0 14px rgba(255, 200, 92, 0.25));
+    }
+
+    .invitation-stage[data-level="3"] .maneki-wrap {
+      filter:
+        brightness(1.08)
+        saturate(1.12)
+        drop-shadow(0 12px 20px rgba(0, 0, 0, 0.45))
+        drop-shadow(0 0 22px rgba(255, 212, 112, 0.42));
+    }
+
+    .maneki-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: 2%;
+      width: 66%;
+      height: 12%;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(12, 8, 4, 0.68) 0%, transparent 72%);
+      pointer-events: none;
+    }
+
+    .maneki-canvas,
+    .maneki-gif {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* --- Gestapelte Sprechblasen über der Winkekatze (weiß mit schwarzem Text) --- */
+    .speech-stack {
+      position: absolute;
+      left: 50%;
+      bottom: calc(clamp(9svh, 13svh, 16svh) + clamp(96px, 27vw, 146px) + 14px);
+      transform: translateX(-50%);
+      width: min(86vw, 330px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    .speech-bubble {
+      position: relative;
+      width: 100%;
+      min-height: 44px;
+      padding: 11px 14px;
+      border-radius: 18px;
+      background: #ffffff;
+      color: #111111;
+      border: 1.5px solid rgba(17, 17, 17, 0.14);
+      box-shadow:
+        0 10px 24px rgba(0, 0, 0, 0.45),
+        0 2px 6px rgba(0, 0, 0, 0.22);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(0.88rem, 3.65vw, 1.0rem);
+      line-height: 1.36;
+      text-align: left;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
+      will-change: opacity, transform;
+    }
+
+    .speech-bubble.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .speech-bubble.hidden-away {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transform: translateY(-6px) scale(0.97) !important;
+      transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s ease;
+    }
+
+    /* Pfeil nach unten zur Katze: an der ersten Sprechblase, solange die zweite noch nicht sichtbar ist */
+    .speech-bubble.first::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -9px;
+      width: 16px;
+      height: 16px;
+      background: #ffffff;
+      border-right: 1.5px solid rgba(17, 17, 17, 0.14);
+      border-bottom: 1.5px solid rgba(17, 17, 17, 0.14);
+      transform: translateX(-50%) rotate(45deg);
+      transition: opacity 0.25s ease;
+    }
+
+    .speech-stack.has-second .speech-bubble.first::after {
+      opacity: 0;
+    }
+
+    /* Pfeil nach unten zur Katze an der zweiten Sprechblase (direkt über der Katze) */
+    .speech-bubble.second::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -9px;
+      width: 16px;
+      height: 16px;
+      background: #ffffff;
+      border-right: 1.5px solid rgba(17, 17, 17, 0.14);
+      border-bottom: 1.5px solid rgba(17, 17, 17, 0.14);
+      transform: translateX(-50%) rotate(45deg);
+    }
+
+    /* --- Theatervorhang-Overlay --- */
+    .curtain-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100svh;
+      z-index: 50;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.65s ease, visibility 0.65s ease;
+    }
+
+    .curtain-container.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .curtain-valance {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: clamp(38px, 6.5svh, 58px);
+      z-index: 3;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          var(--velvet-dark) 0px,
+          var(--velvet-mid) 14px,
+          var(--velvet-light) 28px,
+          var(--velvet-mid) 42px,
+          var(--velvet-dark) 56px
+        );
+      border-bottom: 3px solid var(--gold);
+      box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.55),
+        inset 0 -3px 6px rgba(242, 223, 156, 0.35);
+      transform: translateY(-100%);
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+
+    .curtain-valance::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -8px;
+      height: 6px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--gold-dark) 0px,
+        var(--gold-light) 6px,
+        var(--gold) 12px
+      );
+      opacity: 0.9;
+    }
+
+    .curtain-container.visible .curtain-valance {
+      transform: translateY(0);
+    }
+
+    .curtain-panel {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 51.5vw;
+      height: 100svh;
+      z-index: 2;
+      background:
+        linear-gradient(180deg, rgba(18, 1, 3, 0.55) 0%, transparent 16%, transparent 86%, rgba(18, 1, 3, 0.45) 100%),
+        repeating-linear-gradient(
+          90deg,
+          var(--velvet-dark) 0px,
+          var(--velvet-mid) 16px,
+          var(--velvet-light) 32px,
+          var(--velvet-mid) 48px,
+          var(--velvet-dark) 64px
+        );
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.65);
+      transition: transform 2.1s cubic-bezier(0.32, 0.04, 0.2, 1);
+      will-change: transform;
+    }
+
+    .curtain-left {
+      left: 0;
+      transform-origin: left center;
+      border-right: 2px solid rgba(212, 175, 55, 0.45);
+      box-shadow:
+        inset 0 0 40px rgba(0, 0, 0, 0.65),
+        8px 0 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .curtain-right {
+      right: 0;
+      transform-origin: right center;
+      border-left: 2px solid rgba(212, 175, 55, 0.45);
+      box-shadow:
+        inset 0 0 40px rgba(0, 0, 0, 0.65),
+        -8px 0 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .curtain-left::after,
+    .curtain-right::after {
+      content: "";
+      position: absolute;
+      top: 56%;
+      width: 14px;
+      height: 64px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--gold-light), var(--gold), var(--gold-dark));
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .curtain-left::after {
+      right: 8px;
+    }
+
+    .curtain-right::after {
+      left: 8px;
+    }
+
+    .curtain-container.open .curtain-left {
+      transform: translateX(-86%) scaleX(0.78);
+    }
+
+    .curtain-container.open .curtain-right {
+      transform: translateX(86%) scaleX(0.78);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Einstiegs-Animation -->
+  <main class="stage" id="stage" aria-label="Meine Sechziger starten jetzt">
+    <svg class="emblem" viewBox="0 0 1000 1000" role="img" aria-labelledby="title description">
+      <title id="title">Meine Sechziger starten jetzt</title>
+      <desc id="description">Goldene Schrift innerhalb mehrerer feiner, kreisförmiger Goldlinien auf cremefarbenem Hintergrund.</desc>
+      <defs>
+        <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff0a8"/>
+          <stop offset=".17" stop-color="#a87522"/>
+          <stop offset=".3" stop-color="#f9e6a0"/>
+          <stop offset=".47" stop-color="#8a5b18"/>
+          <stop offset=".62" stop-color="#e4c36b"/>
+          <stop offset=".79" stop-color="#9b6b21"/>
+          <stop offset="1" stop-color="#f5df91"/>
+        </linearGradient>
+
+        <clipPath id="clip-line1"><rect x="250" y="220" width="500" height="140" /></clipPath>
+        <clipPath id="clip-line2"><rect x="80" y="350" width="840" height="140" /></clipPath>
+        <clipPath id="clip-line3"><rect x="280" y="480" width="640" height="140" /></clipPath>
+        <clipPath id="clip-line4"><rect x="180" y="610" width="640" height="140" /></clipPath>
+      </defs>
+
+      <circle class="ring outer" cx="500" cy="500" r="414"/>
+      <circle class="ring outer-highlight" cx="500" cy="500" r="426"
+        stroke-dasharray="2450 230" stroke-dashoffset="95"/>
+      <circle class="ring inner" cx="500" cy="500" r="382"
+        stroke-dasharray="2210 190" stroke-dashoffset="65"/>
+      <circle class="ring inner-highlight" cx="500" cy="500" r="370"
+        stroke-dasharray="2150 175" stroke-dashoffset="150"/>
+
+      <image class="text-line line-1" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line1)" preserveAspectRatio="xMidYMid meet" />
+      <image class="text-line line-2" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line2)" preserveAspectRatio="xMidYMid meet" />
+      <image class="text-line line-3" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line3)" preserveAspectRatio="xMidYMid meet" />
+      <image class="text-line line-4" href="Schriftzug.png" x="160" y="180" width="680" height="600" clip-path="url(#clip-line4)" preserveAspectRatio="xMidYMid meet" />
+    </svg>
+
+    <button class="start-button" id="startButton" type="button">Los geht's</button>
+    <p class="volume-hint" id="volumeHint">Bitte erhöhe die Lautstärke.</p>
+  </main>
+
+  <!-- Interaktive Bühne mit Laternen-Hintergrund -->
+  <section class="invitation-stage" id="invitationStage" data-level="0" aria-label="Laternen-Bühne">
+    <img class="scene-photo" src="hintergrund.jpg" alt="Abendliche Gasse mit bunten Laternen">
+    <div class="mood-overlay" aria-hidden="true"></div>
+    <div class="lantern-layer" id="lanternLayer" aria-hidden="false"></div>
+
+    <!-- Gestapelte Sprechblasen über der Winkekatze (erste oben, zweite darunter) -->
+    <div class="speech-stack" id="speechStack" role="status" aria-live="polite">
+      <div class="speech-bubble first" id="speechBubble1"></div>
+      <div class="speech-bubble second" id="speechBubble2"></div>
+    </div>
+
+    <!-- Winkekatze mittig auf der Straße -->
+    <div class="maneki-wrap" id="manekiWrap" aria-hidden="true">
+      <div class="maneki-shadow"></div>
+      <canvas class="maneki-canvas" id="manekiCanvas"></canvas>
+    </div>
+  </section>
+
+  <!-- Theatervorhang -->
+  <div class="curtain-container" id="curtainContainer" aria-hidden="true">
+    <div class="curtain-valance"></div>
+    <div class="curtain-panel curtain-left"></div>
+    <div class="curtain-panel curtain-right"></div>
+  </div>
+
+  <!--
+    Audio-Datei der Winkekatze:
+    Trage hier den genauen Dateinamen deiner hochgeladenen Audiodatei ein (z. B. "audio_1.mp3" oder "katze.mp3").
+  -->
+  <audio id="catAudio" src="audio_1.mp3" preload="auto" playsinline></audio>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const button = document.getElementById('startButton');
+    const volumeHint = document.getElementById('volumeHint');
+    const curtainContainer = document.getElementById('curtainContainer');
+    const invitationStage = document.getElementById('invitationStage');
+    const lanternLayer = document.getElementById('lanternLayer');
+    const speechStack = document.getElementById('speechStack');
+    const speechBubble1 = document.getElementById('speechBubble1');
+    const speechBubble2 = document.getElementById('speechBubble2');
+    const manekiWrap = document.getElementById('manekiWrap');
+    const manekiCanvas = document.getElementById('manekiCanvas');
+    const catAudio = document.getElementById('catAudio');
+
+    // Konfiguration für Winkekatze:
+    // Optionales fertiges GIF eintragen (z. B. 'winkekatze.gif'). Ist die Datei vorhanden, wird direkt das GIF genutzt,
+    // andernfalls wird winkekatze.jpg automatisch freigestellt und mit animiertem Wink-Arm gerendert.
+    const MANEKI_CONFIG = {
+      gifSrc: 'winkekatze.gif',
+      jpgSrc: 'winkekatze.jpg'
+    };
+
+    // Texte für die synchrone Sprechblase
+    const PART_1_TEXT = 'Hey Du da! Hier unten bin ich. Ich sehe Dich gar nicht. Kannst Du vielleicht mal kurz die Laternen anknipsen?';
+    const PART_2_TEXT = 'Wie, Du weißt nicht, wie das geht? Versuch doch mal auf ein paar Laternen zu klicken.';
+
+    // Zeitpunkte in Sekunden (inkl. +1s Verzögerung vor der ersten Sprechblase und ca. 1s Pause dazwischen)
+    const TIMELINE = {
+      initialDelay: 1.0, // +1 Sekunde Verzögerung vor der Sprechblase
+      part1Start: 1.0,
+      part1End: 6.2,
+      pauseDuration: 1.0, // ca. 1 Sekunde Pause nach dem ersten Teil
+      part2Start: 7.2,
+      part2End: 12.4
+    };
+
+    // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
+    const LANTERNS = [
+      { id: 'L1',  x: 16, y: 8  },
+      { id: 'L2',  x: 34, y: 15 },
+      { id: 'L3',  x: 59, y: 14 },
+      { id: 'L4',  x: 92, y: 4  },
+      { id: 'L5',  x: 10, y: 27 },
+      { id: 'L6',  x: 27, y: 24 },
+      { id: 'L7',  x: 21, y: 38 },
+      { id: 'L8',  x: 45, y: 39 },
+      { id: 'L9',  x: 71, y: 38 },
+      { id: 'L10', x: 92, y: 34 },
+      { id: 'L11', x: 14, y: 46 },
+      { id: 'L12', x: 38, y: 46 },
+      { id: 'L13', x: 60, y: 46 },
+      { id: 'L14', x: 82, y: 46 },
+      { id: 'L15', x: 42, y: 57 },
+      { id: 'L16', x: 62, y: 57 }
+    ];
+
+    const STAGE_1_IDS = new Set(['L2', 'L3', 'L8']);
+    const STAGE_2_IDS = new Set(['L2', 'L3', 'L8', 'L1', 'L6', 'L7', 'L9', 'L12', 'L13']);
+
+    let started = false;
+    let lightLevel = 0;
+    let dialogueStarted = false;
+    let useFallbackClock = false;
+    let fallbackStartTime = 0;
+    let audioEndedAt = null;
+    let dialogueRafId = null;
+    const nodesById = new Map();
+
+    function buildLanterns() {
+      lanternLayer.innerHTML = '';
+      LANTERNS.forEach((item) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'lantern-node';
+        btn.style.setProperty('--x', `${item.x}%`);
+        btn.style.setProperty('--y', `${item.y}%`);
+        btn.setAttribute('aria-label', `Laterne ${item.id}`);
+
+        const glow = document.createElement('span');
+        glow.className = 'lantern-glow';
+        btn.appendChild(glow);
+
+        lanternLayer.appendChild(btn);
+        nodesById.set(item.id, btn);
+      });
+    }
+
+    function applyLightLevel(newLevel) {
+      lightLevel = Math.max(0, Math.min(3, newLevel));
+      invitationStage.dataset.level = String(lightLevel);
+
+      LANTERNS.forEach((item) => {
+        const el = nodesById.get(item.id);
+        if (!el) return;
+        let isLit = false;
+        if (lightLevel === 1) isLit = STAGE_1_IDS.has(item.id);
+        else if (lightLevel === 2) isLit = STAGE_2_IDS.has(item.id);
+        else if (lightLevel >= 3) isLit = true;
+
+        el.classList.toggle('lit', isLit);
+      });
+
+      // Beide Sprechblasen bleiben stehen, bis alle 3 Stufen (alle 3 Laternen-Schritte) angemacht wurden
+      if (lightLevel >= 3) {
+        speechBubble1.classList.add('hidden-away');
+        speechBubble2.classList.add('hidden-away');
+      }
+    }
+
+    function findNearestLantern(clientX, clientY) {
+      const rect = invitationStage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return null;
+
+      const tapXPercent = ((clientX - rect.left) / rect.width) * 100;
+      const tapYPercent = ((clientY - rect.top) / rect.height) * 100;
+
+      const maxTouchRadiusPercent = 22;
+      let best = null;
+      let bestDist = Infinity;
+
+      for (const item of LANTERNS) {
+        const dx = item.x - tapXPercent;
+        const dy = item.y - tapYPercent;
+        const dist = Math.hypot(dx, dy);
+        if (dist <= maxTouchRadiusPercent && dist < bestDist) {
+          bestDist = dist;
+          best = item;
+        }
+      }
+
+      return best;
+    }
+
+    function handleStageTap(clientX, clientY) {
+      if (!invitationStage.classList.contains('ready')) return;
+      if (lightLevel >= 3) return;
+
+      const hitLantern = findNearestLantern(clientX, clientY);
+      if (hitLantern) {
+        const el = nodesById.get(hitLantern.id);
+        if (el) {
+          el.classList.add('lit');
+        }
+        applyLightLevel(lightLevel + 1);
+      }
+    }
+
+    invitationStage.addEventListener('pointerdown', (event) => {
+      handleStageTap(event.clientX, event.clientY);
+    });
+
+    // --- Synchrone Sprechblasen zur Audio-Spur (mit +1s Startverzögerung & Fallback-Timer) ---
+    function getElapsedSeconds() {
+      const wallElapsed = Math.max(0, (performance.now() - fallbackStartTime) / 1000);
+
+      if (!useFallbackClock && catAudio) {
+        if (catAudio.ended) {
+          if (audioEndedAt === null) {
+            audioEndedAt = wallElapsed;
+          }
+          return (catAudio.duration || TIMELINE.part2End) + Math.max(0, wallElapsed - audioEndedAt);
+        }
+        if (!catAudio.paused && catAudio.currentTime > 0) {
+          return catAudio.currentTime;
+        }
+      }
+
+      return wallElapsed;
+    }
+
+    function updateSpeechBubble() {
+      if (lightLevel >= 3) {
+        speechBubble1.classList.add('hidden-away');
+        speechBubble2.classList.add('hidden-away');
+        return;
+      }
+
+      const t = getElapsedSeconds();
+
+      // Erst nach der +1 Sekunde Verzögerung erscheint die erste Sprechblase
+      if (t >= TIMELINE.part1Start) {
+        const duration1 = TIMELINE.part1End - TIMELINE.part1Start;
+        const progress1 = Math.min(1, Math.max(0, (t - TIMELINE.part1Start) / duration1));
+        const charCount1 = Math.max(1, Math.ceil(progress1 * PART_1_TEXT.length));
+        speechBubble1.textContent = PART_1_TEXT.slice(0, charCount1);
+        speechBubble1.classList.add('visible');
+      }
+
+      // Nach ca. 1 Sekunde Pause baut sich die zweite Sprechblase unter der ersten auf; die erste bleibt darüber sichtbar
+      if (t >= TIMELINE.part2Start) {
+        const duration2 = TIMELINE.part2End - TIMELINE.part2Start;
+        const progress2 = Math.min(1, Math.max(0, (t - TIMELINE.part2Start) / duration2));
+        const charCount2 = Math.max(1, Math.ceil(progress2 * PART_2_TEXT.length));
+        speechBubble2.textContent = PART_2_TEXT.slice(0, charCount2);
+        speechBubble2.classList.add('visible');
+        speechStack.classList.add('has-second');
+      }
+
+      if (t < TIMELINE.part2End + 0.5) {
+        dialogueRafId = requestAnimationFrame(updateSpeechBubble);
+      } else {
+        // Nach Ablauf der Audiodatei bleiben beide Sprechblasen vollständig sichtbar stehen, bis alle 3 Laternen-Stufen an sind
+        speechBubble1.textContent = PART_1_TEXT;
+        speechBubble1.classList.add('visible');
+        speechBubble2.textContent = PART_2_TEXT;
+        speechBubble2.classList.add('visible');
+        speechStack.classList.add('has-second');
+      }
+    }
+
+    function startCatAudioAndDialogue() {
+      if (dialogueStarted) return;
+      dialogueStarted = true;
+      fallbackStartTime = performance.now();
+      audioEndedAt = null;
+
+      if (catAudio) {
+        catAudio.currentTime = 0;
+        const playPromise = catAudio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.then(() => {
+            useFallbackClock = false;
+          }).catch(() => {
+            useFallbackClock = true;
+          });
+        }
+      } else {
+        useFallbackClock = true;
+      }
+
+      if (dialogueRafId) cancelAnimationFrame(dialogueRafId);
+      dialogueRafId = requestAnimationFrame(updateSpeechBubble);
+    }
+
+    if (catAudio) {
+      catAudio.addEventListener('error', () => {
+        useFallbackClock = true;
+      });
+    }
+
+    // --- Winkekatze: GIF-Prüfung mit automatischem Fallback auf freigestelltes winkekatze.jpg + Arm-Animation ---
+    function removeWhiteBackground(sourceImg) {
+      const w = sourceImg.naturalWidth || 800;
+      const h = sourceImg.naturalHeight || 800;
+      const off = document.createElement('canvas');
+      off.width = w;
+      off.height = h;
+      const ctx = off.getContext('2d');
+      ctx.drawImage(sourceImg, 0, 0, w, h);
+
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      const visited = new Uint8Array(w * h);
+      const queue = new Int32Array(w * h);
+      let head = 0;
+      let tail = 0;
+
+      const isNearWhite = (idx) => {
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        return r > 236 && g > 236 && b > 236;
+      };
+
+      const enqueue = (x, y) => {
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const p = y * w + x;
+        if (visited[p]) return;
+        visited[p] = 1;
+        if (isNearWhite(p * 4)) {
+          queue[tail++] = p;
+        }
+      };
+
+      for (let x = 0; x < w; x++) {
+        enqueue(x, 0);
+        enqueue(x, h - 1);
+      }
+      for (let y = 0; y < h; y++) {
+        enqueue(0, y);
+        enqueue(w - 1, y);
+      }
+
+      while (head < tail) {
+        const p = queue[head++];
+        const x = p % w;
+        const y = (p - x) / w;
+        data[p * 4 + 3] = 0;
+
+        enqueue(x + 1, y);
+        enqueue(x - 1, y);
+        enqueue(x, y + 1);
+        enqueue(x, y - 1);
+      }
+
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const p = y * w + x;
+          const idx = p * 4;
+          if (data[idx + 3] === 0) continue;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          if (r > 218 && g > 218 && b > 218) {
+            const hasTransparentNeighbor =
+              data[(p - 1) * 4 + 3] === 0 ||
+              data[(p + 1) * 4 + 3] === 0 ||
+              data[(p - w) * 4 + 3] === 0 ||
+              data[(p + w) * 4 + 3] === 0;
+            if (hasTransparentNeighbor) {
+              const lum = (r + g + b) / 3;
+              const alphaFactor = Math.max(0, Math.min(1, (252 - lum) / 34));
+              data[idx + 3] = Math.round(255 * alphaFactor);
+            }
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      return off;
+    }
+
+    function startCanvasWavingAnimation(cutoutCanvas) {
+      const w = cutoutCanvas.width;
+      const h = cutoutCanvas.height;
+
+      const bodyCanvas = document.createElement('canvas');
+      bodyCanvas.width = w;
+      bodyCanvas.height = h;
+      const bCtx = bodyCanvas.getContext('2d');
+      bCtx.drawImage(cutoutCanvas, 0, 0);
+      bCtx.save();
+      bCtx.globalCompositeOperation = 'destination-out';
+      bCtx.beginPath();
+      bCtx.moveTo(w * 0.675, h * 0.42);
+      bCtx.quadraticCurveTo(w * 0.68, h * 0.16, w * 0.88, h * 0.16);
+      bCtx.lineTo(w * 0.96, h * 0.56);
+      bCtx.quadraticCurveTo(w * 0.76, h * 0.57, w * 0.675, h * 0.48);
+      bCtx.closePath();
+      bCtx.fill();
+      bCtx.restore();
+
+      const armCanvas = document.createElement('canvas');
+      armCanvas.width = w;
+      armCanvas.height = h;
+      const aCtx = armCanvas.getContext('2d');
+      aCtx.save();
+      aCtx.beginPath();
+      aCtx.moveTo(w * 0.665, h * 0.43);
+      aCtx.quadraticCurveTo(w * 0.68, h * 0.16, w * 0.88, h * 0.16);
+      aCtx.lineTo(w * 0.96, h * 0.56);
+      aCtx.quadraticCurveTo(w * 0.74, h * 0.58, w * 0.665, h * 0.48);
+      aCtx.closePath();
+      aCtx.clip();
+      aCtx.drawImage(cutoutCanvas, 0, 0);
+      aCtx.restore();
+
+      manekiCanvas.width = w;
+      manekiCanvas.height = h;
+      const ctx = manekiCanvas.getContext('2d');
+
+      const pivotX = w * 0.735;
+      const pivotY = h * 0.465;
+
+      function renderFrame(now) {
+        const t = now * 0.0044;
+        const waveWave = Math.sin(t);
+        const angle = waveWave * 0.14 - 0.03;
+        const scaleY = 1 - Math.max(0, waveWave) * 0.14;
+        const offsetY = Math.max(0, waveWave) * (h * 0.022);
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(bodyCanvas, 0, 0);
+
+        ctx.save();
+        ctx.translate(pivotX, pivotY + offsetY);
+        ctx.rotate(angle);
+        ctx.scale(1, scaleY);
+        ctx.translate(-pivotX, -pivotY);
+        ctx.drawImage(armCanvas, 0, 0);
+        ctx.restore();
+
+        requestAnimationFrame(renderFrame);
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+
+    function initManekiNeko() {
+      const gifProbe = new Image();
+      gifProbe.onload = () => {
+        manekiCanvas.remove();
+        const gifImg = document.createElement('img');
+        gifImg.src = MANEKI_CONFIG.gifSrc;
+        gifImg.alt = 'Winkende Glückskatze';
+        gifImg.className = 'maneki-gif';
+        manekiWrap.appendChild(gifImg);
+      };
+      gifProbe.onerror = () => {
+        const jpgImg = new Image();
+        jpgImg.onload = () => {
+          const cutout = removeWhiteBackground(jpgImg);
+          startCanvasWavingAnimation(cutout);
+        };
+        jpgImg.src = MANEKI_CONFIG.jpgSrc;
+      };
+      gifProbe.src = MANEKI_CONFIG.gifSrc;
+    }
+
+    buildLanterns();
+    applyLightLevel(0);
+    initManekiNeko();
+
+    window.addEventListener('DOMContentLoaded', () => {
+      window.setTimeout(() => {
+        button.classList.add('visible');
+        volumeHint.classList.add('visible');
+      }, 3000);
+    });
+
+    button.addEventListener('click', () => {
+      if (started) return;
+      started = true;
+      stage.classList.add('leaving');
+      button.disabled = true;
+
+      if (catAudio) {
+        catAudio.load();
+      }
+
+      window.setTimeout(() => {
+        stage.classList.add('hidden');
+        invitationStage.classList.add('ready');
+        applyLightLevel(0);
+        curtainContainer.classList.add('visible');
+
+        window.setTimeout(() => {
+          curtainContainer.classList.add('open');
+          startCatAudioAndDialogue();
+        }, 550);
+      }, 1680);
+    });
+  </script>
+</body>
+</html>
