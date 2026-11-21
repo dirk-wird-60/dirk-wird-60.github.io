@@ -188,6 +188,7 @@
        28: Theatervorhang (liegt zunächst ÜBER der Katze [18], später ZWISCHEN Hintergrundbild [10] und Katze [35])
        35: Winkekatze kurz vor dem Schließen des Vorhangs (ÜBER dem Vorhang [28], vor dem Hintergrundbild)
        45: Sprechblasen über der Katze
+       50: Memory-Spielfeld (ÜBER der Katze [35], verdeckt sie am Ende vollständig)
     --- */
     .invitation-stage {
       position: fixed;
@@ -557,6 +558,8 @@
       transform: translateY(0);
     }
 
+    /* Vorhang-Hälften: bewusst OHNE goldenen Rand, OHNE Knauf und ohne Schatten an der Mittelnaht,
+       damit in der Mitte kein Strich sichtbar ist (weder geschlossen noch beim Öffnen/Schließen). */
     .curtain-panel {
       position: absolute;
       top: 0;
@@ -574,7 +577,7 @@
           var(--velvet-mid) 48px,
           var(--velvet-dark) 64px
         );
-      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.65);
+      border: 0;
       transition: transform 2.1s cubic-bezier(0.32, 0.04, 0.2, 1);
       will-change: transform;
     }
@@ -582,39 +585,17 @@
     .curtain-left {
       left: 0;
       transform-origin: left center;
-      border-right: 2px solid rgba(212, 175, 55, 0.45);
-      box-shadow:
-        inset 0 0 40px rgba(0, 0, 0, 0.65),
-        8px 0 24px rgba(0, 0, 0, 0.5);
+      /* Schatten nur am äußeren (linken) Rand */
+      box-shadow: inset 34px 0 40px -22px rgba(0, 0, 0, 0.6);
     }
 
     .curtain-right {
       right: 0;
       transform-origin: right center;
-      border-left: 2px solid rgba(212, 175, 55, 0.45);
-      box-shadow:
-        inset 0 0 40px rgba(0, 0, 0, 0.65),
-        -8px 0 24px rgba(0, 0, 0, 0.5);
-    }
-
-    .curtain-left::after,
-    .curtain-right::after {
-      content: "";
-      position: absolute;
-      top: 56%;
-      width: 14px;
-      height: 64px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, var(--gold-light), var(--gold), var(--gold-dark));
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
-    }
-
-    .curtain-left::after {
-      right: 8px;
-    }
-
-    .curtain-right::after {
-      left: 8px;
+      /* Samtfalten-Muster so verschoben, dass es an der Mittelnaht nahtlos an die linke Hälfte anschließt */
+      background-position: 0 0, -48.5vw 0;
+      /* Schatten nur am äußeren (rechten) Rand */
+      box-shadow: inset -34px 0 40px -22px rgba(0, 0, 0, 0.6);
     }
 
     /* Geöffneter Zustand: Vorhang rafft sich seitlich zusammen */
@@ -633,6 +614,229 @@
 
     .curtain-container.closing .curtain-right {
       transform: translateX(0%) scaleX(1);
+    }
+    /* --- Memory-Spielfeld (z-index 50: über der Katze [35]) ---
+       Echtes Raster: 3 Spalten x 4 Reihen im Smartphone-Hochformat.
+       Reihe 1 + 2 (oben): 6 Bildkarten, 3:4, alle exakt gleich groß.
+       Reihe 3 + 4 (unten): 6 Jahreszahlkarten, alle exakt gleich groß, Höhe füllt den Rest des Bildschirms auf. --- */
+    .memory-board {
+      --g: 6px;
+      --pt: max(var(--g), env(safe-area-inset-top, 0px));
+      --pb: max(var(--g), env(safe-area-inset-bottom, 0px));
+      --cw: calc((100vw - 4 * var(--g)) / 3);
+      --hi: calc(var(--cw) * 4 / 3);
+      --hy: max(56px, calc((100svh - var(--pt) - var(--pb) - 3 * var(--g) - 2 * var(--hi)) / 2));
+
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100svh;
+      z-index: 50;
+      display: grid;
+      grid-template-columns: repeat(3, var(--cw));
+      grid-template-rows: var(--hi) var(--hi) var(--hy) var(--hy);
+      gap: var(--g);
+      justify-content: center;
+      align-content: start;
+      padding: var(--pt) var(--g) var(--pb);
+      overflow: hidden;
+      visibility: hidden;
+      pointer-events: none;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .memory-board.show {
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* Hintergrund hinter den Karten: blendet erst ein, wenn die letzte Karte gelandet ist.
+       Bis dahin bleibt die Katze durch die noch freien Lücken sichtbar. */
+    .mem-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(ellipse at 50% 40%, #4a0610 0%, #1c0206 100%);
+      opacity: 0;
+      transition: opacity 0.7s ease;
+      pointer-events: none;
+    }
+
+    .memory-board.covered .mem-backdrop {
+      opacity: 1;
+    }
+
+    /* Karte = äußerer Rahmen (wird per JS animiert und fällt) + innerer Dreh-Container (Vorder-/Rückseite).
+       Karten sind unsichtbar, bis sie an der Reihe sind. */
+    .mem-card {
+      position: relative;
+      z-index: 1;
+      width: var(--cw);
+      perspective: 800px;
+      -webkit-perspective: 800px;
+      visibility: hidden;
+      will-change: transform;
+    }
+
+    .mem-image { height: var(--hi); aspect-ratio: 3 / 4; }
+    .mem-year  { height: var(--hy); }
+
+    /* Standard: Rückseite oben/vorne (logo.png). Klasse .flipped dreht die Karte auf die Vorderseite
+       (für den nächsten Schritt schon vorbereitet, wird aktuell noch nicht gesetzt). */
+    .mem-inner {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      transform: rotateY(180deg);
+      transition: transform 0.7s cubic-bezier(0.4, 0.1, 0.2, 1);
+    }
+
+    .mem-card.flipped .mem-inner {
+      transform: rotateY(0deg);
+    }
+
+    .mem-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      overflow: hidden;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 244, 200, 0.35);
+    }
+
+    .mem-front { transform: rotateY(0deg); }
+    .mem-back  { transform: rotateY(180deg); }
+
+    /* --- Vorderseite Jahreszahl --- */
+    .mem-year .mem-front {
+      display: grid;
+      place-items: center;
+      background: linear-gradient(160deg, var(--velvet-light) 0%, var(--velvet-mid) 55%, var(--velvet-dark) 100%);
+      color: var(--gold-light);
+    }
+
+    .mem-year .mem-front::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 1px solid rgba(242, 223, 156, 0.6);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .mem-year .mem-front span {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      font-size: calc(var(--cw) * 0.3);
+      letter-spacing: 0.02em;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+    }
+
+    /* --- Vorderseite Bild: Platzhalter liegt immer darunter --- */
+    .mem-image .mem-front {
+      background: #e7cf8a;
+    }
+
+    .mem-ph {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--cw) * 0.05);
+      background: linear-gradient(160deg, #fbf3d6 0%, #e7cf8a 55%, #c49a47 100%);
+      color: var(--gold-dark);
+    }
+
+    .mem-ph::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 1.5px solid rgba(112, 72, 22, 0.5);
+      border-radius: 6px;
+    }
+
+    .mem-ph svg {
+      width: 38%;
+      height: auto;
+      opacity: 0.85;
+    }
+
+    .mem-ph span {
+      font-size: calc(var(--cw) * 0.095);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .mem-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .mem-img.loaded {
+      opacity: 1;
+    }
+
+    /* --- Rückseite aller Karten: logo.png auf cremefarbenem Grund, mit Platzhalter-Emblem als Fallback --- */
+    .mem-back {
+      background: linear-gradient(160deg, #fffaf0 0%, #f6f4ec 55%, #eadcb4 100%);
+      color: var(--gold-dark);
+    }
+
+    .mem-back::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 1.5px solid rgba(181, 138, 61, 0.7);
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .mem-logo-ph {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .mem-logo-ph svg {
+      width: 62%;
+      height: auto;
+      opacity: 0.9;
+    }
+
+    .mem-back.has-logo .mem-logo-ph {
+      display: none;
+    }
+
+    .mem-logo {
+      position: absolute;
+      inset: 11%;
+      width: 78%;
+      height: 78%;
+      object-fit: contain;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .mem-logo.loaded {
+      opacity: 1;
     }
   </style>
 </head>
@@ -704,6 +908,9 @@
     <div class="curtain-panel curtain-right"></div>
   </div>
 
+  <!-- Memory-Spielfeld (wird per JS aufgebaut, liegt über der Katze) -->
+  <div class="memory-board" id="memoryBoard" aria-label="Memory-Spielfeld"></div>
+
   <!--
     Audio-Dateien der Winkekatze:
     - audio_1.mp3: Erste Sprachnachricht nach dem Öffnen des Vorhangs
@@ -724,6 +931,7 @@
     const speechBubble2 = document.getElementById('speechBubble2');
     const manekiWrap = document.getElementById('manekiWrap');
     const manekiCanvas = document.getElementById('manekiCanvas');
+    const memoryBoard = document.getElementById('memoryBoard');
     const catAudio1 = document.getElementById('catAudio1');
     const catAudio2 = document.getElementById('catAudio2');
 
@@ -760,6 +968,15 @@
       pauseBetweenParts: 1.0,
       part2DefaultDuration: 10.5
     };
+
+    // Memory-Spielfeld: Platzhalter-Jahreszahlen (Jahreszahl Nr. n gehört zu bild<n>.jpg)
+    const MEMORY_YEARS = ['1968', '1975', '1984', '1992', '2001', '2010'];
+    const MEMORY_IMAGE_COUNT = 6;
+    const MEMORY_FALL_MIN_MS = 700;        // Fallzeit einer Karte (kurzer Weg)
+    const MEMORY_FALL_MAX_MS = 1050;       // Fallzeit einer Karte (langer Weg)
+    const MEMORY_PAUSE_BETWEEN_MS = 180;   // Pause zwischen Landung und Start der nächsten Karte
+    const MEMORY_COVER_DELAY_MS = 250;     // Wartezeit nach der letzten Landung, bis der Hintergrund einblendet
+    const KNALL_POOL_SIZE = 4;             // Anzahl paralleler Audio-Instanzen für knall.mp3
 
     // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
     const LANTERNS = [
@@ -805,6 +1022,12 @@
     let waitingForPet = false;
     let petCompleted = false;
     let pointerDownOnCat = null;
+
+    // Memory-Status
+    let memoryBuilt = false;
+    let memoryStarted = false;
+    let memoryComplete = false;   // true, sobald alle 12 Karten gelandet sind und das Feld geschlossen ist
+    const memoryCells = [];   // { el, row, col } – row 0 = oben, row 3 = unten
 
     const nodesById = new Map();
 
@@ -1092,6 +1315,9 @@
       // 3. Sobald der Vorhang geschlossen ist (nach der 2.1s Schließ-Transition), Hintergrundbild ausblenden
       window.setTimeout(() => {
         invitationStage.classList.add('bg-hidden');
+
+        // 4. Kurz danach baut sich das Memory-Spielfeld über der weiter winkenden Katze auf
+        window.setTimeout(startMemoryBoard, 300);
       }, 2120);
     }
 
@@ -1213,6 +1439,239 @@
     manekiWrap.addEventListener('pointercancel', () => {
       pointerDownOnCat = null;
     });
+
+    // --- Memory-Spielfeld: 3 Spalten x 4 Reihen ---
+    // Reihe 1 + 2 (oben): 6 Bildkarten | Reihe 3 + 4 (unten): 6 Jahreszahlkarten
+    // Jede Karte hat Vorderseite (Bild/Jahreszahl, verdeckt) und Rückseite (logo.png, liegt oben).
+
+    // knall.mp3: Pool aus mehreren Audio-Instanzen, damit auch schnell aufeinanderfolgende Landungen sauber abspielen
+    const knallPool = Array.from({ length: KNALL_POOL_SIZE }, () => {
+      const a = new Audio('knall.mp3');
+      a.preload = 'auto';
+      return a;
+    });
+    let knallIndex = 0;
+
+    function playKnall() {
+      const a = knallPool[knallIndex % knallPool.length];
+      knallIndex++;
+      try {
+        a.pause();
+        a.currentTime = 0;
+      } catch (err) { /* ignorieren */ }
+      const p = a.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
+
+    function shuffleArray(list) {
+      const arr = list.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Rückseite (identisch für alle 12 Karten): logo.png, mit Platzhalter-Emblem falls die Datei fehlt
+    function createBackFace() {
+      const back = document.createElement('div');
+      back.className = 'mem-face mem-back';
+
+      const ph = document.createElement('div');
+      ph.className = 'mem-logo-ph';
+      ph.innerHTML =
+        '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" aria-hidden="true">' +
+        '<circle cx="32" cy="32" r="28" stroke-width="3"/>' +
+        '<circle cx="32" cy="32" r="22" stroke-width="1.2"/>' +
+        '<text x="32" y="39" text-anchor="middle" font-family="Georgia, serif" font-size="20" font-weight="700" fill="currentColor" stroke="none">60</text>' +
+        '</svg>';
+      back.appendChild(ph);
+
+      const img = new Image();
+      img.className = 'mem-logo';
+      img.alt = '';
+      img.decoding = 'async';
+      img.onload = () => {
+        img.classList.add('loaded');
+        back.classList.add('has-logo');
+      };
+      img.onerror = () => img.remove();
+      img.src = 'logo.png';
+      back.appendChild(img);
+
+      return back;
+    }
+
+    function createImageCard(n) {
+      const card = document.createElement('div');
+      card.className = 'mem-card mem-image';
+      card.dataset.pair = String(n);
+
+      const inner = document.createElement('div');
+      inner.className = 'mem-inner';
+
+      const front = document.createElement('div');
+      front.className = 'mem-face mem-front';
+
+      // Platzhalter liegt immer darunter und bleibt sichtbar, falls das Bild fehlt oder nicht lädt
+      const ph = document.createElement('div');
+      ph.className = 'mem-ph';
+      ph.innerHTML =
+        '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' +
+        '<rect x="8" y="12" width="48" height="40" rx="5"/>' +
+        '<circle cx="22" cy="26" r="5"/>' +
+        '<path d="M10 48l14-14 10 10 8-8 12 12"/>' +
+        '</svg>' +
+        '<span>Bild ' + n + '</span>';
+      front.appendChild(ph);
+
+      // Bild blendet erst ein, wenn es wirklich geladen ist; bei Fehler wird es entfernt
+      const img = new Image();
+      img.className = 'mem-img';
+      img.alt = '';
+      img.decoding = 'async';
+      img.onload = () => img.classList.add('loaded');
+      img.onerror = () => img.remove();
+      img.src = 'bild' + n + '.jpg';
+      front.appendChild(img);
+
+      inner.appendChild(front);
+      inner.appendChild(createBackFace());
+      card.appendChild(inner);
+      return card;
+    }
+
+    function createYearCard(index) {
+      const card = document.createElement('div');
+      card.className = 'mem-card mem-year';
+      card.dataset.pair = String(index + 1);
+
+      const inner = document.createElement('div');
+      inner.className = 'mem-inner';
+
+      const front = document.createElement('div');
+      front.className = 'mem-face mem-front';
+      const label = document.createElement('span');
+      label.textContent = MEMORY_YEARS[index];
+      front.appendChild(label);
+
+      inner.appendChild(front);
+      inner.appendChild(createBackFace());
+      card.appendChild(inner);
+      return card;
+    }
+
+    function buildMemoryBoard() {
+      if (memoryBuilt) return;
+      memoryBuilt = true;
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'mem-backdrop';
+      memoryBoard.appendChild(backdrop);
+
+      // Innerhalb der Gruppen gemischt: 6 Bilder auf die oberen 6 Felder, 6 Jahre auf die unteren 6 Felder
+      const imageOrder = shuffleArray(Array.from({ length: MEMORY_IMAGE_COUNT }, (_, i) => i + 1));
+      const yearOrder = shuffleArray(Array.from({ length: MEMORY_YEARS.length }, (_, i) => i));
+
+      for (let slot = 0; slot < 6; slot++) {
+        const row = Math.floor(slot / 3);   // 0 oder 1  -> Reihe 1 + 2
+        const col = slot % 3;
+        const card = createImageCard(imageOrder[slot]);
+        card.style.gridRow = String(row + 1);
+        card.style.gridColumn = String(col + 1);
+        memoryBoard.appendChild(card);
+        memoryCells.push({ el: card, row, col });
+      }
+
+      for (let slot = 0; slot < 6; slot++) {
+        const row = 2 + Math.floor(slot / 3);   // 2 oder 3 -> Reihe 3 + 4
+        const col = slot % 3;
+        const card = createYearCard(yearOrder[slot]);
+        card.style.gridRow = String(row + 1);
+        card.style.gridColumn = String(col + 1);
+        memoryBoard.appendChild(card);
+        memoryCells.push({ el: card, row, col });
+      }
+    }
+
+    // Eine Karte fällt, bei Landung: knall.mp3 + kleines Nachfedern, dann (nach kurzer Pause) die nächste Karte
+    function dropMemoryCard(order, i) {
+      if (i >= order.length) {
+        finishMemoryBoard();
+        return;
+      }
+
+      const cell = order[i];
+      const el = cell.el;
+      el.style.visibility = 'visible';
+
+      const next = () => window.setTimeout(() => dropMemoryCard(order, i + 1), MEMORY_PAUSE_BETWEEN_MS);
+
+      if (typeof el.animate !== 'function') {
+        playKnall();
+        next();
+        return;
+      }
+
+      const fallAnim = el.animate(
+        [
+          { transform: `translateY(${-cell.fall}px)` },
+          { transform: 'translateY(0px)' }
+        ],
+        { duration: cell.dur, easing: 'cubic-bezier(0.5, 0, 0.9, 0.55)', fill: 'both' }
+      );
+
+      fallAnim.onfinish = () => {
+        playKnall();
+        el.animate(
+          [
+            { transform: 'translateY(0px)' },
+            { transform: 'translateY(-9px)', offset: 0.45 },
+            { transform: 'translateY(0px)' }
+          ],
+          { duration: 320, easing: 'ease-out', fill: 'both' }
+        );
+        next();
+      };
+    }
+
+    // Alle 12 Karten liegen: Hintergrund blendet ein, Feld ist geschlossen.
+    // Die Katze bleibt bewusst im DOM (hinter dem Spielfeld, z-index 35 < 50), damit sie im nächsten Schritt wieder genutzt werden kann.
+    function finishMemoryBoard() {
+      window.setTimeout(() => {
+        memoryBoard.classList.add('covered');
+        memoryComplete = true;
+        window.dispatchEvent(new CustomEvent('memory-complete'));
+      }, MEMORY_COVER_DELAY_MS);
+    }
+
+    function startMemoryBoard() {
+      if (memoryStarted) return;
+      memoryStarted = true;
+      buildMemoryBoard();
+
+      const viewportH = window.innerHeight;
+      const order = [];
+
+      // Streng von unten nach oben: Reihe 4 (row 3), dann 3, 2, 1 (row 0).
+      // Innerhalb einer Reihe zufällige Reihenfolge, aber immer einzeln nacheinander.
+      for (let row = 3; row >= 0; row--) {
+        const cellsInRow = shuffleArray(memoryCells.filter((c) => c.row === row));
+        cellsInRow.forEach((cell) => {
+          // Messen, solange noch keine Animation läuft: Karte liegt an ihrer Rasterposition
+          const rect = cell.el.getBoundingClientRect();
+          cell.fall = rect.bottom + 24;
+          cell.dur = Math.round(
+            MEMORY_FALL_MIN_MS + (MEMORY_FALL_MAX_MS - MEMORY_FALL_MIN_MS) * Math.min(1, cell.fall / viewportH)
+          );
+          order.push(cell);
+        });
+      }
+
+      // Board einblenden (Karten selbst sind noch unsichtbar, Lücken zeigen die Katze), dann Karte für Karte fallen lassen
+      memoryBoard.classList.add('show');
+      dropMemoryCard(order, 0);
+    }
 
     // --- Winkekatze: GIF-Prüfung mit automatischem Fallback auf freigestelltes winkekatze.jpg + Arm-Animation ---
     function removeWhiteBackground(sourceImg) {
@@ -1394,6 +1853,8 @@
     buildLanterns();
     applyLightLevel(0);
     initManekiNeko();
+    // Spielfeld schon jetzt unsichtbar aufbauen, damit bild1.jpg bis bild6.jpg im Hintergrund vorgeladen werden
+    buildMemoryBoard();
 
     window.addEventListener('DOMContentLoaded', () => {
       window.setTimeout(() => {
@@ -1411,6 +1872,7 @@
       // Audio direkt im Klick freischalten (wichtig für iOS/Safari)
       unlockAudio(catAudio1);
       unlockAudio(catAudio2);
+      knallPool.forEach(unlockAudio);
 
       window.setTimeout(() => {
         stage.classList.add('hidden');
