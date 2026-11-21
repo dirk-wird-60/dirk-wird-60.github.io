@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f4ec">
   <title>Meine Sechziger starten jetzt</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cinzel:wght@600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <style>
     :root {
       --cream: #f6f4ec;
@@ -52,7 +49,7 @@
       flex-direction: column;
       align-items: center;
       position: relative;
-      z-index: 10;
+      z-index: 60;
     }
 
     .stage.hidden {
@@ -185,7 +182,13 @@
       .volume-hint { margin-top: 7px; font-size: 0.82rem; }
     }
 
-    /* --- Interaktive Bühne mit Laternen-Hintergrund --- */
+    /* --- Ebenen-Ordnung:
+       10: Hintergrundbild (hintergrund.jpg) + Mood + Laternen
+       18: Winkekatze während des gesamten Audio-Teils (ZWISCHEN Hintergrundbild [10] und Vorhang [28])
+       28: Theatervorhang (liegt zunächst ÜBER der Katze [18], später ZWISCHEN Hintergrundbild [10] und Katze [35])
+       35: Winkekatze kurz vor dem Schließen des Vorhangs (ÜBER dem Vorhang [28], vor dem Hintergrundbild)
+       45: Sprechblasen über der Katze
+    --- */
     .invitation-stage {
       position: fixed;
       inset: 0;
@@ -195,7 +198,7 @@
       overflow: hidden;
       opacity: 0;
       visibility: hidden;
-      z-index: 20;
+      z-index: 10;
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
@@ -215,8 +218,9 @@
       object-position: center center;
       display: block;
       filter: brightness(0.24) saturate(0.68) contrast(1.04);
-      transition: filter 1.25s cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: filter;
+      opacity: 1;
+      transition: filter 1.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.85s ease;
+      will-change: filter, opacity;
       pointer-events: none;
     }
 
@@ -232,7 +236,13 @@
       filter: brightness(1.08) saturate(1.14) contrast(1.02);
     }
 
-    /* Sanfte atmosphärische Farbstimmung über das Bild */
+    .invitation-stage.bg-hidden .scene-photo,
+    .invitation-stage.bg-hidden .mood-overlay,
+    .invitation-stage.bg-hidden .lantern-layer {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .mood-overlay {
       position: absolute;
       inset: 0;
@@ -264,12 +274,12 @@
       background: radial-gradient(circle at 50% 34%, rgba(255, 224, 140, 0.34) 0%, rgba(255, 178, 72, 0.12) 78%);
     }
 
-    /* Layer für einzelne Laternen-Lichthöfe und großzügige Touch-Zonen */
     .lantern-layer {
       position: absolute;
       inset: 0;
       z-index: 3;
       pointer-events: none;
+      transition: opacity 0.85s ease;
     }
 
     .lantern-node {
@@ -319,32 +329,52 @@
       transform: scale(1.38);
     }
 
-    /* --- Winkekatze mittig auf der Straße --- */
+    /* --- Winkekatze mittig auf der Straße:
+       Während des gesamten Audio-Teils im Layer zwischen Hintergrundbild [10] und Vorhang [28].
+       Erst kurz vor dem Schließen des Vorhangs per .in-front-of-curtain über den Vorhang [35] gehoben.
+       Die Katze steht im HTML NEBEN der .invitation-stage, deshalb Geschwister-Selektor (~). --- */
     .maneki-wrap {
-      position: absolute;
+      position: fixed;
       left: 50%;
       bottom: clamp(9svh, 13svh, 16svh);
-      width: clamp(96px, 27vw, 146px);
+      width: clamp(104px, 29vw, 156px);
       aspect-ratio: 1 / 1;
       transform: translateX(-50%);
-      z-index: 4;
-      pointer-events: none;
+      z-index: 18;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: auto;
+      cursor: pointer;
+      touch-action: none;
       filter:
         brightness(0.32)
         saturate(0.72)
         drop-shadow(0 10px 14px rgba(0, 0, 0, 0.72));
-      transition: filter 1.25s cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: filter;
+      transition: filter 1.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease, visibility 0.35s ease;
+      will-change: filter, opacity;
     }
 
-    .invitation-stage[data-level="1"] .maneki-wrap {
+    .invitation-stage.ready ~ .maneki-wrap {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .maneki-wrap.in-front-of-curtain {
+      z-index: 35;
+    }
+
+    .maneki-wrap.pettable {
+      cursor: grab;
+    }
+
+    .invitation-stage[data-level="1"] ~ .maneki-wrap {
       filter:
         brightness(0.62)
         saturate(0.95)
         drop-shadow(0 10px 16px rgba(0, 0, 0, 0.62));
     }
 
-    .invitation-stage[data-level="2"] .maneki-wrap {
+    .invitation-stage[data-level="2"] ~ .maneki-wrap {
       filter:
         brightness(0.9)
         saturate(1.06)
@@ -352,7 +382,7 @@
         drop-shadow(0 0 14px rgba(255, 200, 92, 0.25));
     }
 
-    .invitation-stage[data-level="3"] .maneki-wrap {
+    .invitation-stage[data-level="3"] ~ .maneki-wrap {
       filter:
         brightness(1.08)
         saturate(1.12)
@@ -379,19 +409,20 @@
       height: 100%;
       display: block;
       object-fit: contain;
+      pointer-events: none;
     }
 
     /* --- Gestapelte Sprechblasen über der Winkekatze (weiß mit schwarzem Text) --- */
     .speech-stack {
-      position: absolute;
+      position: fixed;
       left: 50%;
-      bottom: calc(clamp(9svh, 13svh, 16svh) + clamp(96px, 27vw, 146px) + 14px);
+      bottom: calc(clamp(9svh, 13svh, 16svh) + clamp(104px, 29vw, 156px) + 14px);
       transform: translateX(-50%);
-      width: min(86vw, 330px);
+      width: min(88vw, 340px);
       display: flex;
       flex-direction: column;
       gap: 10px;
-      z-index: 6;
+      z-index: 45;
       pointer-events: none;
     }
 
@@ -408,13 +439,13 @@
         0 10px 24px rgba(0, 0, 0, 0.45),
         0 2px 6px rgba(0, 0, 0, 0.22);
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(0.88rem, 3.65vw, 1.0rem);
-      line-height: 1.36;
+      font-size: clamp(0.86rem, 3.55vw, 0.98rem);
+      line-height: 1.35;
       text-align: left;
       opacity: 0;
       visibility: hidden;
       transform: translateY(8px);
-      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
+      transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s ease;
       will-change: opacity, transform;
     }
 
@@ -427,11 +458,10 @@
     .speech-bubble.hidden-away {
       opacity: 0 !important;
       visibility: hidden !important;
-      transform: translateY(-6px) scale(0.97) !important;
-      transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s ease;
+      transform: translateY(-8px) scale(0.97) !important;
+      transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
     }
 
-    /* Pfeil nach unten zur Katze: an der ersten Sprechblase, solange die zweite noch nicht sichtbar ist */
     .speech-bubble.first::after {
       content: "";
       position: absolute;
@@ -450,7 +480,6 @@
       opacity: 0;
     }
 
-    /* Pfeil nach unten zur Katze an der zweiten Sprechblase (direkt über der Katze) */
     .speech-bubble.second::after {
       content: "";
       position: absolute;
@@ -464,13 +493,13 @@
       transform: translateX(-50%) rotate(45deg);
     }
 
-    /* --- Theatervorhang-Overlay --- */
+    /* --- Theatervorhang-Overlay (z-index 28: über Katze [18] während des Öffnens, unter Katze [35] beim Schließen) --- */
     .curtain-container {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100svh;
-      z-index: 50;
+      z-index: 28;
       pointer-events: none;
       overflow: hidden;
       opacity: 0;
@@ -588,12 +617,22 @@
       left: 8px;
     }
 
+    /* Geöffneter Zustand: Vorhang rafft sich seitlich zusammen */
     .curtain-container.open .curtain-left {
       transform: translateX(-86%) scaleX(0.78);
     }
 
     .curtain-container.open .curtain-right {
       transform: translateX(86%) scaleX(0.78);
+    }
+
+    /* Wieder geschlossener Zustand (hinter der Katze): beide Vorhanghälften fahren zur Mitte zusammen */
+    .curtain-container.closing .curtain-left {
+      transform: translateX(0%) scaleX(1);
+    }
+
+    .curtain-container.closing .curtain-right {
+      transform: translateX(0%) scaleX(1);
     }
   </style>
 </head>
@@ -641,22 +680,22 @@
 
   <!-- Interaktive Bühne mit Laternen-Hintergrund -->
   <section class="invitation-stage" id="invitationStage" data-level="0" aria-label="Laternen-Bühne">
-    <img class="scene-photo" src="hintergrund.jpg" alt="Abendliche Gasse mit bunten Laternen">
+    <img class="scene-photo" id="scenePhoto" src="hintergrund.jpg" alt="Abendliche Gasse mit bunten Laternen">
     <div class="mood-overlay" aria-hidden="true"></div>
     <div class="lantern-layer" id="lanternLayer" aria-hidden="false"></div>
-
-    <!-- Gestapelte Sprechblasen über der Winkekatze (erste oben, zweite darunter) -->
-    <div class="speech-stack" id="speechStack" role="status" aria-live="polite">
-      <div class="speech-bubble first" id="speechBubble1"></div>
-      <div class="speech-bubble second" id="speechBubble2"></div>
-    </div>
-
-    <!-- Winkekatze mittig auf der Straße -->
-    <div class="maneki-wrap" id="manekiWrap" aria-hidden="true">
-      <div class="maneki-shadow"></div>
-      <canvas class="maneki-canvas" id="manekiCanvas"></canvas>
-    </div>
   </section>
+
+  <!-- Gestapelte Sprechblasen über der Winkekatze (erste oben, zweite darunter) -->
+  <div class="speech-stack" id="speechStack" role="status" aria-live="polite">
+    <div class="speech-bubble first" id="speechBubble1"></div>
+    <div class="speech-bubble second" id="speechBubble2"></div>
+  </div>
+
+  <!-- Winkekatze mittig auf der Straße -->
+  <div class="maneki-wrap" id="manekiWrap" aria-label="Winkende Glückskatze">
+    <div class="maneki-shadow"></div>
+    <canvas class="maneki-canvas" id="manekiCanvas"></canvas>
+  </div>
 
   <!-- Theatervorhang -->
   <div class="curtain-container" id="curtainContainer" aria-hidden="true">
@@ -666,10 +705,12 @@
   </div>
 
   <!--
-    Audio-Datei der Winkekatze:
-    Trage hier den genauen Dateinamen deiner hochgeladenen Audiodatei ein (z. B. "audio_1.mp3" oder "katze.mp3").
+    Audio-Dateien der Winkekatze:
+    - audio_1.mp3: Erste Sprachnachricht nach dem Öffnen des Vorhangs
+    - audio_2.mp3: Zweite Sprachnachricht, sobald alle 3 Laternen-Stufen eingeschaltet sind
   -->
-  <audio id="catAudio" src="audio_1.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio1" src="audio_1.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio2" src="audio_2.mp3" preload="auto" playsinline></audio>
 
   <script>
     const stage = document.getElementById('stage');
@@ -683,28 +724,41 @@
     const speechBubble2 = document.getElementById('speechBubble2');
     const manekiWrap = document.getElementById('manekiWrap');
     const manekiCanvas = document.getElementById('manekiCanvas');
-    const catAudio = document.getElementById('catAudio');
+    const catAudio1 = document.getElementById('catAudio1');
+    const catAudio2 = document.getElementById('catAudio2');
 
     // Konfiguration für Winkekatze:
-    // Optionales fertiges GIF eintragen (z. B. 'winkekatze.gif'). Ist die Datei vorhanden, wird direkt das GIF genutzt,
+    // Ist winkekatze.gif vorhanden, wird direkt das GIF genutzt,
     // andernfalls wird winkekatze.jpg automatisch freigestellt und mit animiertem Wink-Arm gerendert.
     const MANEKI_CONFIG = {
       gifSrc: 'winkekatze.gif',
       jpgSrc: 'winkekatze.jpg'
     };
 
-    // Texte für die synchrone Sprechblase
-    const PART_1_TEXT = 'Hey Du da! Hier unten bin ich. Ich sehe Dich gar nicht. Kannst Du vielleicht mal kurz die Laternen anknipsen?';
-    const PART_2_TEXT = 'Wie, Du weißt nicht, wie das geht? Versuch doch mal auf ein paar Laternen zu klicken.';
+    // Texte für Phase 1 (vor dem Einschalten aller Laternen)
+    const PHASE1_PART1_TEXT = 'Hey Du da! Hier unten bin ich. Ich sehe Dich gar nicht. Kannst Du vielleicht mal kurz die Laternen anknipsen?';
+    const PHASE1_PART2_TEXT = 'Wie, Du weißt nicht, wie das geht? Versuch doch mal auf ein paar Laternen zu klicken.';
 
-    // Zeitpunkte in Sekunden (inkl. +1s Verzögerung vor der ersten Sprechblase und ca. 1s Pause dazwischen)
-    const TIMELINE = {
-      initialDelay: 1.0, // +1 Sekunde Verzögerung vor der Sprechblase
+    // Texte für Phase 2 (nachdem alle 3 Laternen-Stufen eingeschaltet sind)
+    const PHASE2_PART1_TEXT = 'Ja super. Geht doch. Ein besonderer Geburtstag steht an und ich weiß, Du dachtest wahrscheinlich, Du bekommst \'ne Einladung und das war\'s, aber warum so einfach, wenn es auch etwas spannender geht?';
+    const PHASE2_PART2_TEXT = 'Beweis mir doch erstmal, dass Du das Geburtstagskind auch richtig gut kennst. Wenn Du dabei bist, streichel mich einmal, dann weiß ich Bescheid.';
+
+    // Zeitpunkte in Sekunden für Phase 1 (inkl. 1s Verzögerung nach Vorhang-Öffnung & 1s Pause dazwischen)
+    const PHASE1_TIMELINE = {
+      startDelay: 1.0,
       part1Start: 1.0,
       part1End: 6.2,
-      pauseDuration: 1.0, // ca. 1 Sekunde Pause nach dem ersten Teil
       part2Start: 7.2,
       part2End: 12.4
+    };
+
+    // Zeitpunkte in Sekunden für Phase 2
+    const PHASE2_TIMELINE = {
+      startDelay: 1.5,
+      part1Start: 0.0,
+      part1DefaultDuration: 12.5,
+      pauseBetweenParts: 1.0,
+      part2DefaultDuration: 10.5
     };
 
     // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
@@ -731,13 +785,44 @@
     const STAGE_2_IDS = new Set(['L2', 'L3', 'L8', 'L1', 'L6', 'L7', 'L9', 'L12', 'L13']);
 
     let started = false;
+    let interactive = false;   // Laternen erst anklickbar, wenn der Vorhang offen ist
     let lightLevel = 0;
-    let dialogueStarted = false;
-    let useFallbackClock = false;
-    let fallbackStartTime = 0;
-    let audioEndedAt = null;
-    let dialogueRafId = null;
+
+    // Phase-1-Status (audio_1.mp3)
+    let phase1Started = false;
+    let phase1UseFallback = false;
+    let phase1ClockStart = 0;
+    let phase1EndedAt = null;
+    let phase1RafId = null;
+
+    // Phase-2-Status (audio_2.mp3 + Streicheln + Vorhang schließen hinter der Katze)
+    let phase2Triggered = false;
+    let phase2AudioStarted = false;
+    let phase2UseFallback = false;
+    let phase2ClockStart = 0;
+    let phase2EndedAt = null;
+    let phase2RafId = null;
+    let waitingForPet = false;
+    let petCompleted = false;
+    let pointerDownOnCat = null;
+
     const nodesById = new Map();
+
+    // Audio auf dem Handy (iOS/Safari) freischalten: muss direkt im Klick passieren
+    function unlockAudio(a) {
+      if (!a) return;
+      a.muted = true;
+      const p = a.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          a.pause();
+          a.currentTime = 0;
+          a.muted = false;
+        }).catch(() => {
+          a.muted = false;
+        });
+      }
+    }
 
     function buildLanterns() {
       lanternLayer.innerHTML = '';
@@ -758,6 +843,22 @@
       });
     }
 
+    function hideBothBubbles() {
+      speechBubble1.classList.remove('visible');
+      speechBubble2.classList.remove('visible');
+      speechBubble1.classList.add('hidden-away');
+      speechBubble2.classList.add('hidden-away');
+      speechStack.classList.remove('has-second');
+    }
+
+    function resetBubblesForNewSequence() {
+      speechBubble1.textContent = '';
+      speechBubble2.textContent = '';
+      speechBubble1.classList.remove('visible', 'hidden-away');
+      speechBubble2.classList.remove('visible', 'hidden-away');
+      speechStack.classList.remove('has-second');
+    }
+
     function applyLightLevel(newLevel) {
       lightLevel = Math.max(0, Math.min(3, newLevel));
       invitationStage.dataset.level = String(lightLevel);
@@ -773,10 +874,17 @@
         el.classList.toggle('lit', isLit);
       });
 
-      // Beide Sprechblasen bleiben stehen, bis alle 3 Stufen (alle 3 Laternen-Schritte) angemacht wurden
-      if (lightLevel >= 3) {
-        speechBubble1.classList.add('hidden-away');
-        speechBubble2.classList.add('hidden-away');
+      if (lightLevel >= 3 && !phase2Triggered) {
+        phase2Triggered = true;
+        if (phase1RafId) cancelAnimationFrame(phase1RafId);
+        if (catAudio1 && !catAudio1.paused) {
+          catAudio1.pause();
+        }
+        hideBothBubbles();
+
+        window.setTimeout(() => {
+          startPhase2AudioAndDialogue();
+        }, PHASE2_TIMELINE.startDelay * 1000);
       }
     }
 
@@ -805,6 +913,7 @@
     }
 
     function handleStageTap(clientX, clientY) {
+      if (!interactive) return;
       if (!invitationStage.classList.contains('ready')) return;
       if (lightLevel >= 3) return;
 
@@ -822,94 +931,288 @@
       handleStageTap(event.clientX, event.clientY);
     });
 
-    // --- Synchrone Sprechblasen zur Audio-Spur (mit +1s Startverzögerung & Fallback-Timer) ---
-    function getElapsedSeconds() {
-      const wallElapsed = Math.max(0, (performance.now() - fallbackStartTime) / 1000);
-
-      if (!useFallbackClock && catAudio) {
-        if (catAudio.ended) {
-          if (audioEndedAt === null) {
-            audioEndedAt = wallElapsed;
+    // --- Phase 1: Audio 1 + 2 Sprechblasen (mit 1s Verzögerung nach Vorhang-Öffnung) ---
+    function getPhase1Elapsed() {
+      const wallElapsed = Math.max(0, (performance.now() - phase1ClockStart) / 1000);
+      if (!phase1UseFallback && catAudio1) {
+        if (catAudio1.ended) {
+          if (phase1EndedAt === null) {
+            phase1EndedAt = wallElapsed;
           }
-          return (catAudio.duration || TIMELINE.part2End) + Math.max(0, wallElapsed - audioEndedAt);
+          return (catAudio1.duration || PHASE1_TIMELINE.part2End) + Math.max(0, wallElapsed - phase1EndedAt);
         }
-        if (!catAudio.paused && catAudio.currentTime > 0) {
-          return catAudio.currentTime;
+        if (!catAudio1.paused && catAudio1.currentTime > 0) {
+          return catAudio1.currentTime;
         }
       }
-
       return wallElapsed;
     }
 
-    function updateSpeechBubble() {
-      if (lightLevel >= 3) {
-        speechBubble1.classList.add('hidden-away');
-        speechBubble2.classList.add('hidden-away');
+    function updatePhase1Bubbles() {
+      if (lightLevel >= 3 || phase2Triggered) {
+        hideBothBubbles();
         return;
       }
 
-      const t = getElapsedSeconds();
+      const t = getPhase1Elapsed();
 
-      // Erst nach der +1 Sekunde Verzögerung erscheint die erste Sprechblase
-      if (t >= TIMELINE.part1Start) {
-        const duration1 = TIMELINE.part1End - TIMELINE.part1Start;
-        const progress1 = Math.min(1, Math.max(0, (t - TIMELINE.part1Start) / duration1));
-        const charCount1 = Math.max(1, Math.ceil(progress1 * PART_1_TEXT.length));
-        speechBubble1.textContent = PART_1_TEXT.slice(0, charCount1);
+      if (t >= PHASE1_TIMELINE.part1Start) {
+        const duration1 = Math.max(0.5, PHASE1_TIMELINE.part1End - PHASE1_TIMELINE.part1Start);
+        const progress1 = Math.min(1, Math.max(0, (t - PHASE1_TIMELINE.part1Start) / duration1));
+        const charCount1 = Math.max(1, Math.ceil(progress1 * PHASE1_PART1_TEXT.length));
+        speechBubble1.textContent = PHASE1_PART1_TEXT.slice(0, charCount1);
+        speechBubble1.classList.remove('hidden-away');
         speechBubble1.classList.add('visible');
       }
 
-      // Nach ca. 1 Sekunde Pause baut sich die zweite Sprechblase unter der ersten auf; die erste bleibt darüber sichtbar
-      if (t >= TIMELINE.part2Start) {
-        const duration2 = TIMELINE.part2End - TIMELINE.part2Start;
-        const progress2 = Math.min(1, Math.max(0, (t - TIMELINE.part2Start) / duration2));
-        const charCount2 = Math.max(1, Math.ceil(progress2 * PART_2_TEXT.length));
-        speechBubble2.textContent = PART_2_TEXT.slice(0, charCount2);
+      if (t >= PHASE1_TIMELINE.part2Start) {
+        const duration2 = Math.max(0.5, PHASE1_TIMELINE.part2End - PHASE1_TIMELINE.part2Start);
+        const progress2 = Math.min(1, Math.max(0, (t - PHASE1_TIMELINE.part2Start) / duration2));
+        const charCount2 = Math.max(1, Math.ceil(progress2 * PHASE1_PART2_TEXT.length));
+        speechBubble2.textContent = PHASE1_PART2_TEXT.slice(0, charCount2);
+        speechBubble2.classList.remove('hidden-away');
         speechBubble2.classList.add('visible');
         speechStack.classList.add('has-second');
       }
 
-      if (t < TIMELINE.part2End + 0.5) {
-        dialogueRafId = requestAnimationFrame(updateSpeechBubble);
+      if (t < PHASE1_TIMELINE.part2End + 0.5) {
+        phase1RafId = requestAnimationFrame(updatePhase1Bubbles);
       } else {
-        // Nach Ablauf der Audiodatei bleiben beide Sprechblasen vollständig sichtbar stehen, bis alle 3 Laternen-Stufen an sind
-        speechBubble1.textContent = PART_1_TEXT;
+        speechBubble1.textContent = PHASE1_PART1_TEXT;
+        speechBubble1.classList.remove('hidden-away');
         speechBubble1.classList.add('visible');
-        speechBubble2.textContent = PART_2_TEXT;
+        speechBubble2.textContent = PHASE1_PART2_TEXT;
+        speechBubble2.classList.remove('hidden-away');
         speechBubble2.classList.add('visible');
         speechStack.classList.add('has-second');
       }
     }
 
-    function startCatAudioAndDialogue() {
-      if (dialogueStarted) return;
-      dialogueStarted = true;
-      fallbackStartTime = performance.now();
-      audioEndedAt = null;
+    function startPhase1AudioAndDialogue() {
+      if (phase1Started || lightLevel >= 3) return;
+      phase1Started = true;
+      resetBubblesForNewSequence();
+      phase1ClockStart = performance.now();
+      phase1EndedAt = null;
 
-      if (catAudio) {
-        catAudio.currentTime = 0;
-        const playPromise = catAudio.play();
+      if (catAudio1) {
+        catAudio1.currentTime = 0;
+        const playPromise = catAudio1.play();
         if (playPromise && typeof playPromise.then === 'function') {
           playPromise.then(() => {
-            useFallbackClock = false;
+            phase1UseFallback = false;
           }).catch(() => {
-            useFallbackClock = true;
+            phase1UseFallback = true;
           });
         }
       } else {
-        useFallbackClock = true;
+        phase1UseFallback = true;
       }
 
-      if (dialogueRafId) cancelAnimationFrame(dialogueRafId);
-      dialogueRafId = requestAnimationFrame(updateSpeechBubble);
+      if (phase1RafId) cancelAnimationFrame(phase1RafId);
+      phase1RafId = requestAnimationFrame(updatePhase1Bubbles);
     }
 
-    if (catAudio) {
-      catAudio.addEventListener('error', () => {
-        useFallbackClock = true;
+    if (catAudio1) {
+      catAudio1.addEventListener('error', () => {
+        phase1UseFallback = true;
       });
     }
+
+    // --- Phase 2: Audio 2 + Sprechblasen + Streicheln + Vorhang schließt hinter Katze ---
+    function getPhase2TimelineMetrics() {
+      const hasRealDuration = Boolean(
+        !phase2UseFallback &&
+        catAudio2 &&
+        Number.isFinite(catAudio2.duration) &&
+        catAudio2.duration > 3
+      );
+
+      if (hasRealDuration) {
+        const totalSpeakable = Math.max(4, catAudio2.duration - PHASE2_TIMELINE.pauseBetweenParts);
+        const weight1 = PHASE2_PART1_TEXT.length;
+        const weight2 = PHASE2_PART2_TEXT.length;
+        const weightSum = weight1 + weight2;
+        const part1Duration = Math.max(2.0, totalSpeakable * (weight1 / weightSum));
+        const part2Start = part1Duration + PHASE2_TIMELINE.pauseBetweenParts;
+        const part2End = Math.min(catAudio2.duration, part2Start + Math.max(2.0, totalSpeakable * (weight2 / weightSum)));
+
+        return {
+          part1Start: 0,
+          part1End: part1Duration,
+          part2Start,
+          part2End: Math.max(part2Start + 1.5, part2End)
+        };
+      }
+
+      const part1End = PHASE2_TIMELINE.part1DefaultDuration;
+      const part2Start = part1End + PHASE2_TIMELINE.pauseBetweenParts;
+      const part2End = part2Start + PHASE2_TIMELINE.part2DefaultDuration;
+      return {
+        part1Start: 0,
+        part1End,
+        part2Start,
+        part2End
+      };
+    }
+
+    function getPhase2Elapsed() {
+      const wallElapsed = Math.max(0, (performance.now() - phase2ClockStart) / 1000);
+      if (!phase2UseFallback && catAudio2) {
+        if (catAudio2.ended) {
+          if (phase2EndedAt === null) {
+            phase2EndedAt = wallElapsed;
+          }
+          const metrics = getPhase2TimelineMetrics();
+          return (catAudio2.duration || metrics.part2End) + Math.max(0, wallElapsed - phase2EndedAt);
+        }
+        if (!catAudio2.paused && catAudio2.currentTime > 0) {
+          return catAudio2.currentTime;
+        }
+      }
+      return wallElapsed;
+    }
+
+    function enablePettingMode() {
+      if (petCompleted) return;
+      waitingForPet = true;
+      manekiWrap.classList.add('pettable');
+    }
+
+    function closeCurtainBehindCat() {
+      // 1. Katze im z-index über den Vorhang heben (35 > 28)
+      manekiWrap.classList.add('in-front-of-curtain');
+
+      // 2. Auf den nächsten Frame warten, damit der Layer-Wechsel greift, dann Vorhang schließen
+      requestAnimationFrame(() => {
+        curtainContainer.classList.remove('open');
+        curtainContainer.classList.add('visible', 'closing');
+      });
+
+      // 3. Sobald der Vorhang geschlossen ist (nach der 2.1s Schließ-Transition), Hintergrundbild ausblenden
+      window.setTimeout(() => {
+        invitationStage.classList.add('bg-hidden');
+      }, 2120);
+    }
+
+    function completePetting() {
+      if (petCompleted || !waitingForPet) return;
+      petCompleted = true;
+      waitingForPet = false;
+      manekiWrap.classList.remove('pettable');
+      if (phase2RafId) cancelAnimationFrame(phase2RafId);
+      if (catAudio2 && !catAudio2.paused) catAudio2.pause();
+      hideBothBubbles();
+      closeCurtainBehindCat();
+    }
+
+    function updatePhase2Bubbles() {
+      if (petCompleted) {
+        hideBothBubbles();
+        return;
+      }
+
+      const t = getPhase2Elapsed();
+      const metrics = getPhase2TimelineMetrics();
+      const audioFinished = Boolean(catAudio2 && catAudio2.ended);
+
+      if (t >= metrics.part1Start) {
+        const duration1 = Math.max(1.0, metrics.part1End - metrics.part1Start);
+        const progress1 = Math.min(1, Math.max(0, (t - metrics.part1Start) / duration1));
+        const charCount1 = Math.max(1, Math.ceil(progress1 * PHASE2_PART1_TEXT.length));
+        speechBubble1.textContent = PHASE2_PART1_TEXT.slice(0, charCount1);
+        speechBubble1.classList.remove('hidden-away');
+        speechBubble1.classList.add('visible');
+      }
+
+      if (t >= metrics.part2Start) {
+        const duration2 = Math.max(1.0, metrics.part2End - metrics.part2Start);
+        const progress2 = Math.min(1, Math.max(0, (t - metrics.part2Start) / duration2));
+        const charCount2 = Math.max(1, Math.ceil(progress2 * PHASE2_PART2_TEXT.length));
+        speechBubble2.textContent = PHASE2_PART2_TEXT.slice(0, charCount2);
+        speechBubble2.classList.remove('hidden-away');
+        speechBubble2.classList.add('visible');
+        speechStack.classList.add('has-second');
+      }
+
+      if (audioFinished || t >= metrics.part2End) {
+        speechBubble1.textContent = PHASE2_PART1_TEXT;
+        speechBubble1.classList.remove('hidden-away');
+        speechBubble1.classList.add('visible');
+        speechBubble2.textContent = PHASE2_PART2_TEXT;
+        speechBubble2.classList.remove('hidden-away');
+        speechBubble2.classList.add('visible');
+        speechStack.classList.add('has-second');
+        enablePettingMode();
+      }
+
+      if (!petCompleted) {
+        phase2RafId = requestAnimationFrame(updatePhase2Bubbles);
+      }
+    }
+
+    function startPhase2AudioAndDialogue() {
+      if (phase2AudioStarted || petCompleted) return;
+      phase2AudioStarted = true;
+      resetBubblesForNewSequence();
+      phase2ClockStart = performance.now();
+      phase2EndedAt = null;
+      // Streicheln wird erst am Ende der Sprachnachricht freigeschaltet (siehe updatePhase2Bubbles / 'ended')
+
+      if (catAudio2) {
+        catAudio2.currentTime = 0;
+        const playPromise = catAudio2.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.then(() => {
+            phase2UseFallback = false;
+          }).catch(() => {
+            phase2UseFallback = true;
+          });
+        }
+      } else {
+        phase2UseFallback = true;
+      }
+
+      if (phase2RafId) cancelAnimationFrame(phase2RafId);
+      phase2RafId = requestAnimationFrame(updatePhase2Bubbles);
+    }
+
+    if (catAudio2) {
+      catAudio2.addEventListener('error', () => {
+        phase2UseFallback = true;
+      });
+      catAudio2.addEventListener('ended', () => {
+        enablePettingMode();
+      });
+    }
+
+    manekiWrap.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+      pointerDownOnCat = { x: event.clientX, y: event.clientY };
+      if (waitingForPet && !petCompleted) {
+        completePetting();
+      }
+    });
+
+    manekiWrap.addEventListener('pointermove', (event) => {
+      if (!pointerDownOnCat || petCompleted || !waitingForPet) return;
+      const dist = Math.hypot(event.clientX - pointerDownOnCat.x, event.clientY - pointerDownOnCat.y);
+      if (dist >= 12) {
+        completePetting();
+      }
+    });
+
+    manekiWrap.addEventListener('pointerup', (event) => {
+      event.stopPropagation();
+      pointerDownOnCat = null;
+      if (waitingForPet && !petCompleted) {
+        completePetting();
+      }
+    });
+
+    manekiWrap.addEventListener('pointercancel', () => {
+      pointerDownOnCat = null;
+    });
 
     // --- Winkekatze: GIF-Prüfung mit automatischem Fallback auf freigestelltes winkekatze.jpg + Arm-Animation ---
     function removeWhiteBackground(sourceImg) {
@@ -1072,8 +1375,16 @@
       gifProbe.onerror = () => {
         const jpgImg = new Image();
         jpgImg.onload = () => {
-          const cutout = removeWhiteBackground(jpgImg);
-          startCanvasWavingAnimation(cutout);
+          try {
+            const cutout = removeWhiteBackground(jpgImg);
+            startCanvasWavingAnimation(cutout);
+          } catch (err) {
+            // Z. B. beim lokalen Öffnen per file:// blockiert der Browser das Auslesen der Pixel.
+            // Dann wird das Bild unverändert (ohne Freistellung/Wink-Animation) angezeigt.
+            manekiCanvas.width = jpgImg.naturalWidth || 800;
+            manekiCanvas.height = jpgImg.naturalHeight || 800;
+            manekiCanvas.getContext('2d').drawImage(jpgImg, 0, 0);
+          }
         };
         jpgImg.src = MANEKI_CONFIG.jpgSrc;
       };
@@ -1097,20 +1408,29 @@
       stage.classList.add('leaving');
       button.disabled = true;
 
-      if (catAudio) {
-        catAudio.load();
-      }
+      // Audio direkt im Klick freischalten (wichtig für iOS/Safari)
+      unlockAudio(catAudio1);
+      unlockAudio(catAudio2);
 
       window.setTimeout(() => {
         stage.classList.add('hidden');
-        invitationStage.classList.add('ready');
-        applyLightLevel(0);
+        // 1. Vorhang zuerst einblenden (geschlossen, deckt alles ab)
         curtainContainer.classList.add('visible');
 
+        // 2. Erst wenn der Vorhang deckend ist: Hintergrundbild + Katze einblenden (liegen hinter dem Vorhang)
         window.setTimeout(() => {
-          curtainContainer.classList.add('open');
-          startCatAudioAndDialogue();
-        }, 550);
+          invitationStage.classList.add('ready');
+          applyLightLevel(0);
+
+          // 3. Vorhang öffnen; dahinter sind Hintergrundbild und Katze sichtbar
+          window.setTimeout(() => {
+            curtainContainer.classList.add('open');
+            interactive = true;
+
+            // Nach dem Öffnen 1 Sekunde warten, bevor audio_1.mp3 und die Sprechblasen starten
+            window.setTimeout(startPhase1AudioAndDialogue, PHASE1_TIMELINE.startDelay * 1000);
+          }, 600);
+        }, 700);
       }, 1680);
     });
   </script>
