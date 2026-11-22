@@ -888,6 +888,205 @@
         0 0 14px 3px rgba(255, 214, 112, 0.7),
         0 4px 10px rgba(0, 0, 0, 0.5);
     }
+
+    /* --- Finale: roter Umschlag (z-index 56: über Memory-Spielfeld [50] und Katze [35]) ---
+       Größe über --ew/--eh (per JS in px gesetzt, Standard 94vw). Position/Drehung/Skalierung per JS (Spirale). */
+    .env {
+      --ew: 94vw;
+      --eh: calc(94vw * 704 / 1477);
+      --pw: calc(var(--ew) * 0.88);
+      --ph: calc(var(--pw) * 4 / 3);
+
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: var(--ew);
+      height: var(--eh);
+      z-index: 56;
+      visibility: hidden;
+      pointer-events: none;
+      transform-origin: 50% 50%;
+      transform: translate3d(-200vw, 0, 0);
+      will-change: transform;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.55));
+    }
+
+    .env.show {
+      visibility: visible;
+    }
+
+    /* Innenseite des Umschlags (sichtbar, sobald die Lasche offen ist) */
+    .env-back {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #5a0912 0%, #7a0d18 60%, #8f1422 100%);
+    }
+
+    /* Papier: wird per Slot am unteren Umschlagrand abgeschnitten, damit es nur oben herausgleiten kann */
+    .env-slot {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      -webkit-clip-path: inset(-400vh -30vw 3px -30vw);   /* 3 px Abstand zum unteren Rand: kein weißer Streifen */
+      clip-path: inset(-400vh -30vw 3px -30vw);
+    }
+
+    .env-paper {
+      position: absolute;
+      left: calc((var(--ew) - var(--pw)) / 2);
+      top: calc(var(--eh) * 0.40);
+      width: var(--pw);
+      height: var(--ph);
+      background: #fffdf8;
+      border-radius: 3px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      will-change: transform;
+      visibility: hidden;   /* bleibt unsichtbar, solange der Umschlag geschlossen ist */
+    }
+
+    .env.paper-visible .env-paper {
+      visibility: visible;
+    }
+
+    /* Platzhalter-Einladung (wird durch einladung.jpg ersetzt, sobald die Datei existiert) */
+    .paper-ph {
+      position: absolute;
+      inset: 0;
+      padding: 5%;
+      background: #fffdf8;
+    }
+
+    .paper-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 3px double var(--gold);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--pw) * 0.04);
+      text-align: center;
+      color: var(--gold-dark);
+      background: radial-gradient(ellipse at 50% 38%, #fffaf0 0%, #f6f4ec 60%, #efe3c0 100%);
+    }
+
+    .paper-frame::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border: 1px solid rgba(181, 138, 61, 0.55);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .paper-emblem {
+      width: 30%;
+      height: auto;
+      color: var(--gold);
+    }
+
+    .paper-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      font-size: calc(var(--pw) * 0.1);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-dark);
+    }
+
+    .paper-sub {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: calc(var(--pw) * 0.045);
+      line-height: 1.4;
+      color: var(--ink);
+      opacity: 0.85;
+    }
+
+    .paper-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      background: #fffdf8;
+    }
+
+    .paper-img.loaded {
+      opacity: 1;
+    }
+
+    /* Tasche (unterer Hauptkörper): Samt aus dem unteren Streifen von brief.jpg, oben leicht V-förmig */
+    .env-pocket {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background-color: #b50f1c;
+      background-image: url("brief.jpg");
+      background-repeat: no-repeat;
+      background-size: 100% 1193%;
+      background-position: 0 100%;
+      -webkit-clip-path: polygon(0 38%, 50% 30%, 100% 38%, 100% 100%, 0 100%);
+      clip-path: polygon(0 38%, 50% 30%, 100% 38%, 100% 100%, 0 100%);
+    }
+
+    .env-pocket::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(40, 0, 6, 0.45) 0%, rgba(40, 0, 6, 0) 22%, rgba(40, 0, 6, 0) 80%, rgba(40, 0, 6, 0.25) 100%);
+    }
+
+    /* Obere Lasche: Vorderseite = brief.jpg (Spitze + Emblem, an der Spitzenkante freigestellt), Rückseite = Innenfutter.
+       Aufklappen per 3D-Drehung (rotateX) um die obere Kante. */
+    .env-flap {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      transform-origin: 50% 0;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      transform: perspective(1100px) rotateX(0deg);
+    }
+
+    .env-flap.open {
+      z-index: 1;   /* offene Lasche liegt hinter dem Papier */
+    }
+
+    .env-flap-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    /* Vorderseite: Spitzenkante unten (geschlossen). */
+    .env-flap-front {
+      -webkit-clip-path: polygon(0% 0%, 100% 0%, 100.00% 86.35%, 99.59% 86.34%, 98.64% 86.04%, 97.70% 84.91%, 96.75% 83.31%, 95.80% 82.31%, 94.85% 81.89%, 93.90% 81.54%, 92.95% 81.27%, 92.01% 80.92%, 91.06% 79.87%, 90.11% 77.96%, 89.16% 76.87%, 88.21% 76.86%, 87.26% 76.86%, 86.31% 76.86%, 85.37% 77.50%, 84.42% 78.12%, 83.47% 78.37%, 82.52% 79.65%, 81.57% 81.09%, 80.62% 81.55%, 79.67% 81.68%, 78.73% 82.47%, 77.78% 83.52%, 76.83% 83.69%, 75.88% 83.72%, 74.93% 83.73%, 73.98% 83.63%, 73.04% 82.99%, 72.09% 82.07%, 71.14% 81.73%, 70.19% 81.40%, 69.24% 81.25%, 68.29% 81.10%, 67.34% 80.09%, 66.40% 78.12%, 65.45% 76.64%, 64.50% 75.57%, 63.55% 74.43%, 62.60% 74.29%, 61.65% 74.29%, 60.70% 74.29%, 59.76% 74.54%, 58.81% 77.57%, 57.86% 83.05%, 56.91% 86.63%, 55.96% 88.32%, 55.01% 90.15%, 54.07% 91.41%, 53.12% 92.13%, 52.17% 92.56%, 51.22% 92.63%, 50.27% 92.62%, 49.32% 92.54%, 48.37% 92.49%, 47.43% 92.45%, 46.48% 91.52%, 45.53% 89.70%, 44.58% 87.49%, 43.63% 85.69%, 42.68% 85.39%, 41.73% 85.39%, 40.79% 85.16%, 39.84% 84.15%, 38.89% 83.44%, 37.94% 81.44%, 36.99% 80.10%, 36.04% 80.10%, 35.09% 80.10%, 34.15% 80.11%, 33.20% 80.18%, 32.25% 80.66%, 31.30% 81.01%, 30.35% 82.45%, 29.40% 84.85%, 28.46% 85.76%, 27.51% 85.89%, 26.56% 85.52%, 25.61% 84.22%, 24.66% 83.53%, 23.71% 83.13%, 22.76% 82.65%, 21.82% 82.57%, 20.87% 82.57%, 19.92% 82.57%, 18.97% 82.92%, 18.02% 84.96%, 17.07% 85.80%, 16.12% 85.80%, 15.18% 84.86%, 14.23% 82.88%, 13.28% 82.67%, 12.33% 82.67%, 11.38% 82.67%, 10.43% 82.67%, 9.49% 82.67%, 8.54% 82.67%, 7.59% 82.67%, 6.64% 82.67%, 5.69% 83.55%, 4.74% 85.82%, 3.79% 86.41%, 2.85% 86.41%, 1.90% 86.41%, 0.95% 86.41%, 0.00% 86.41%);
+      clip-path: polygon(0% 0%, 100% 0%, 100.00% 86.35%, 99.59% 86.34%, 98.64% 86.04%, 97.70% 84.91%, 96.75% 83.31%, 95.80% 82.31%, 94.85% 81.89%, 93.90% 81.54%, 92.95% 81.27%, 92.01% 80.92%, 91.06% 79.87%, 90.11% 77.96%, 89.16% 76.87%, 88.21% 76.86%, 87.26% 76.86%, 86.31% 76.86%, 85.37% 77.50%, 84.42% 78.12%, 83.47% 78.37%, 82.52% 79.65%, 81.57% 81.09%, 80.62% 81.55%, 79.67% 81.68%, 78.73% 82.47%, 77.78% 83.52%, 76.83% 83.69%, 75.88% 83.72%, 74.93% 83.73%, 73.98% 83.63%, 73.04% 82.99%, 72.09% 82.07%, 71.14% 81.73%, 70.19% 81.40%, 69.24% 81.25%, 68.29% 81.10%, 67.34% 80.09%, 66.40% 78.12%, 65.45% 76.64%, 64.50% 75.57%, 63.55% 74.43%, 62.60% 74.29%, 61.65% 74.29%, 60.70% 74.29%, 59.76% 74.54%, 58.81% 77.57%, 57.86% 83.05%, 56.91% 86.63%, 55.96% 88.32%, 55.01% 90.15%, 54.07% 91.41%, 53.12% 92.13%, 52.17% 92.56%, 51.22% 92.63%, 50.27% 92.62%, 49.32% 92.54%, 48.37% 92.49%, 47.43% 92.45%, 46.48% 91.52%, 45.53% 89.70%, 44.58% 87.49%, 43.63% 85.69%, 42.68% 85.39%, 41.73% 85.39%, 40.79% 85.16%, 39.84% 84.15%, 38.89% 83.44%, 37.94% 81.44%, 36.99% 80.10%, 36.04% 80.10%, 35.09% 80.10%, 34.15% 80.11%, 33.20% 80.18%, 32.25% 80.66%, 31.30% 81.01%, 30.35% 82.45%, 29.40% 84.85%, 28.46% 85.76%, 27.51% 85.89%, 26.56% 85.52%, 25.61% 84.22%, 24.66% 83.53%, 23.71% 83.13%, 22.76% 82.65%, 21.82% 82.57%, 20.87% 82.57%, 19.92% 82.57%, 18.97% 82.92%, 18.02% 84.96%, 17.07% 85.80%, 16.12% 85.80%, 15.18% 84.86%, 14.23% 82.88%, 13.28% 82.67%, 12.33% 82.67%, 11.38% 82.67%, 10.43% 82.67%, 9.49% 82.67%, 8.54% 82.67%, 7.59% 82.67%, 6.64% 82.67%, 5.69% 83.55%, 4.74% 85.82%, 3.79% 86.41%, 2.85% 86.41%, 1.90% 86.41%, 0.95% 86.41%, 0.00% 86.41%);
+      background-color: #a30c18;
+      background-image: url("brief.jpg");
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+    }
+
+    /* Rückseite (Innenfutter): dieselbe Kontur, aber senkrecht gespiegelt. Zusammen mit rotateX(180deg) der Rückseite
+       und der Drehung der Lasche um die obere Kante ergibt das eine echte, starre Klappbewegung:
+       die gerade Scharnierkante bleibt am Umschlag, die Spitzenkante (und das Emblem) wandert mit nach oben,
+       und zwischen Lasche und Umschlag entsteht keine Lücke. */
+    .env-flap-back {
+      transform: rotateX(180deg);
+      -webkit-clip-path: polygon(0% 100.00%, 100% 100.00%, 100.00% 13.65%, 99.59% 13.66%, 98.64% 13.96%, 97.70% 15.09%, 96.75% 16.69%, 95.80% 17.69%, 94.85% 18.11%, 93.90% 18.46%, 92.95% 18.73%, 92.01% 19.08%, 91.06% 20.13%, 90.11% 22.04%, 89.16% 23.13%, 88.21% 23.14%, 87.26% 23.14%, 86.31% 23.14%, 85.37% 22.50%, 84.42% 21.88%, 83.47% 21.63%, 82.52% 20.35%, 81.57% 18.91%, 80.62% 18.45%, 79.67% 18.32%, 78.73% 17.53%, 77.78% 16.48%, 76.83% 16.31%, 75.88% 16.28%, 74.93% 16.27%, 73.98% 16.37%, 73.04% 17.01%, 72.09% 17.93%, 71.14% 18.27%, 70.19% 18.60%, 69.24% 18.75%, 68.29% 18.90%, 67.34% 19.91%, 66.40% 21.88%, 65.45% 23.36%, 64.50% 24.43%, 63.55% 25.57%, 62.60% 25.71%, 61.65% 25.71%, 60.70% 25.71%, 59.76% 25.46%, 58.81% 22.43%, 57.86% 16.95%, 56.91% 13.37%, 55.96% 11.68%, 55.01% 9.85%, 54.07% 8.59%, 53.12% 7.87%, 52.17% 7.44%, 51.22% 7.37%, 50.27% 7.38%, 49.32% 7.46%, 48.37% 7.51%, 47.43% 7.55%, 46.48% 8.48%, 45.53% 10.30%, 44.58% 12.51%, 43.63% 14.31%, 42.68% 14.61%, 41.73% 14.61%, 40.79% 14.84%, 39.84% 15.85%, 38.89% 16.56%, 37.94% 18.56%, 36.99% 19.90%, 36.04% 19.90%, 35.09% 19.90%, 34.15% 19.89%, 33.20% 19.82%, 32.25% 19.34%, 31.30% 18.99%, 30.35% 17.55%, 29.40% 15.15%, 28.46% 14.24%, 27.51% 14.11%, 26.56% 14.48%, 25.61% 15.78%, 24.66% 16.47%, 23.71% 16.87%, 22.76% 17.35%, 21.82% 17.43%, 20.87% 17.43%, 19.92% 17.43%, 18.97% 17.08%, 18.02% 15.04%, 17.07% 14.20%, 16.12% 14.20%, 15.18% 15.14%, 14.23% 17.12%, 13.28% 17.33%, 12.33% 17.33%, 11.38% 17.33%, 10.43% 17.33%, 9.49% 17.33%, 8.54% 17.33%, 7.59% 17.33%, 6.64% 17.33%, 5.69% 16.45%, 4.74% 14.18%, 3.79% 13.59%, 2.85% 13.59%, 1.90% 13.59%, 0.95% 13.59%, 0.00% 13.59%);
+      clip-path: polygon(0% 100.00%, 100% 100.00%, 100.00% 13.65%, 99.59% 13.66%, 98.64% 13.96%, 97.70% 15.09%, 96.75% 16.69%, 95.80% 17.69%, 94.85% 18.11%, 93.90% 18.46%, 92.95% 18.73%, 92.01% 19.08%, 91.06% 20.13%, 90.11% 22.04%, 89.16% 23.13%, 88.21% 23.14%, 87.26% 23.14%, 86.31% 23.14%, 85.37% 22.50%, 84.42% 21.88%, 83.47% 21.63%, 82.52% 20.35%, 81.57% 18.91%, 80.62% 18.45%, 79.67% 18.32%, 78.73% 17.53%, 77.78% 16.48%, 76.83% 16.31%, 75.88% 16.28%, 74.93% 16.27%, 73.98% 16.37%, 73.04% 17.01%, 72.09% 17.93%, 71.14% 18.27%, 70.19% 18.60%, 69.24% 18.75%, 68.29% 18.90%, 67.34% 19.91%, 66.40% 21.88%, 65.45% 23.36%, 64.50% 24.43%, 63.55% 25.57%, 62.60% 25.71%, 61.65% 25.71%, 60.70% 25.71%, 59.76% 25.46%, 58.81% 22.43%, 57.86% 16.95%, 56.91% 13.37%, 55.96% 11.68%, 55.01% 9.85%, 54.07% 8.59%, 53.12% 7.87%, 52.17% 7.44%, 51.22% 7.37%, 50.27% 7.38%, 49.32% 7.46%, 48.37% 7.51%, 47.43% 7.55%, 46.48% 8.48%, 45.53% 10.30%, 44.58% 12.51%, 43.63% 14.31%, 42.68% 14.61%, 41.73% 14.61%, 40.79% 14.84%, 39.84% 15.85%, 38.89% 16.56%, 37.94% 18.56%, 36.99% 19.90%, 36.04% 19.90%, 35.09% 19.90%, 34.15% 19.89%, 33.20% 19.82%, 32.25% 19.34%, 31.30% 18.99%, 30.35% 17.55%, 29.40% 15.15%, 28.46% 14.24%, 27.51% 14.11%, 26.56% 14.48%, 25.61% 15.78%, 24.66% 16.47%, 23.71% 16.87%, 22.76% 17.35%, 21.82% 17.43%, 20.87% 17.43%, 19.92% 17.43%, 18.97% 17.08%, 18.02% 15.04%, 17.07% 14.20%, 16.12% 14.20%, 15.18% 15.14%, 14.23% 17.12%, 13.28% 17.33%, 12.33% 17.33%, 11.38% 17.33%, 10.43% 17.33%, 9.49% 17.33%, 8.54% 17.33%, 7.59% 17.33%, 6.64% 17.33%, 5.69% 16.45%, 4.74% 14.18%, 3.79% 13.59%, 2.85% 13.59%, 1.90% 13.59%, 0.95% 13.59%, 0.00% 13.59%);
+      background: linear-gradient(180deg, #6e0a14 0%, #8f1422 100%);
+    }
   </style>
 </head>
 <body>
@@ -961,15 +1160,43 @@
   <!-- Memory-Spielfeld (wird per JS aufgebaut, liegt über der Katze) -->
   <div class="memory-board" id="memoryBoard" aria-label="Memory-Spielfeld"></div>
 
+  <!-- Roter Umschlag (Finale): Aufbau von hinten nach vorne = Innenseite, Papier, Tasche (Samt), Lasche (brief.jpg) -->
+  <div class="env" id="envelope" aria-hidden="true">
+    <div class="env-back"></div>
+    <div class="env-slot">
+      <div class="env-paper" id="envPaper">
+        <div class="paper-ph">
+          <div class="paper-frame">
+            <svg class="paper-emblem" viewBox="0 0 64 64" fill="none" stroke="currentColor" aria-hidden="true">
+              <circle cx="32" cy="32" r="28" stroke-width="2.6"/>
+              <circle cx="32" cy="32" r="22" stroke-width="1.1"/>
+              <text x="32" y="39" text-anchor="middle" font-family="Georgia, serif" font-size="20" font-weight="700" fill="currentColor" stroke="none">60</text>
+            </svg>
+            <div class="paper-title">Einladung</div>
+            <div class="paper-sub">Hier erscheint Deine Einladung<br>(einladung.jpg)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="env-pocket"></div>
+    <div class="env-flap" id="envFlap">
+      <div class="env-flap-face env-flap-front"></div>
+      <div class="env-flap-face env-flap-back"></div>
+    </div>
+  </div>
+
   <!--
     Audio-Dateien der Winkekatze:
     - audio_1.mp3: Erste Sprachnachricht nach dem Öffnen des Vorhangs
     - audio_2.mp3: Zweite Sprachnachricht, sobald alle 3 Laternen-Stufen eingeschaltet sind
     - audio_3.mp3: Dritte Sprachnachricht (Memory-Erklärung), nachdem die Katze zwischen den Karten hervorgelugt hat
+    - audio_4.mp3: Vierte Sprachnachricht (Lob nach dem Memory, vor dem Niesen)
+    - hatschi.mp3 (Niesen), knall.mp3, richtig.mp3, falsch.mp3: Soundeffekte (werden über Web Audio geladen)
   -->
   <audio id="catAudio1" src="audio_1.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio2" src="audio_2.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio3" src="audio_3.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio4" src="audio_4.mp3" preload="auto" playsinline></audio>
 
   <script>
     const stage = document.getElementById('stage');
@@ -987,6 +1214,7 @@
     const catAudio1 = document.getElementById('catAudio1');
     const catAudio2 = document.getElementById('catAudio2');
     const catAudio3 = document.getElementById('catAudio3');
+    const catAudio4 = document.getElementById('catAudio4');
 
     // Konfiguration für Winkekatze:
     // Ist winkekatze.gif vorhanden, wird direkt das GIF genutzt,
@@ -1041,7 +1269,7 @@
 
     // Memory-Ansage (audio_3.mp3), alles in einer einzigen Sprechblase.
     // Hinweis: Anreden (Du, Dich, Dir, Dein, Deine, Euch, Euer) immer großschreiben, falls der Text einmal angepasst wird.
-    const MEMORY_INTRO_TEXT = "Auf geht's. Wir spielen eine Runde Memory gemeinsam. Oben sind Fotos, unten sind Jahreszahlen. Decke nacheinander die Memory Karten auf und finde alle Pärchen. Immer ein Bild und eine Jahreszahl.";
+    const MEMORY_INTRO_TEXT = "Auf geht's. Wir spielen eine Runde Memory gemeinsam. Oben sind Fotos, unten sind Jahreszahlen. Immer ein Foto und eine Jahreszahl gehören zusammen. Decke nacheinander die Memory Karten auf und finde alle Pärchen.";
     const MEMORY_HINT_TOP_PHRASE = 'Oben sind Fotos';
     const MEMORY_HINT_BOTTOM_PHRASE = 'unten sind Jahreszahlen';
     const MEMORY_INTRO_FALLBACK_DURATION_S = 16;   // Textdauer, falls audio_3.mp3 nicht abgespielt werden kann
@@ -1052,6 +1280,32 @@
     const MEMORY_FLIP_MS = 700;                    // Dauer der Umdreh-Animation (wie im CSS)
     const MEMORY_EVAL_DELAY_MS = 750;              // Wartezeit nach dem Aufdecken der 2. Karte bis zur Auswertung
     const MEMORY_WRONG_SHOW_MS = 900;              // So lange bleiben falsche Karten offen, bevor sie zurückdrehen
+
+    // Finale: Karten fallen weg, Katze niest, roter Umschlag fliegt in einer Spirale heran und öffnet sich
+    const FINALE_START_DELAY_MS = 900;             // Pause nach dem letzten Treffer
+    const FINALE_CARD_FALL_MS = 480;               // Fallzeit einer Karte beim Wegfallen (deutlich schneller als beim Hereinfallen)
+    const FINALE_CARD_STAGGER_MS = 55;             // Versatz zwischen den Karten (unterste Reihe zuerst)
+    const FINALE_BEFORE_AUDIO4_MS = 1000;          // Pause (mindestens 1 s) nach dem Wegfallen der Karten, bevor audio_4.mp3 startet
+    const FINALE_SPEECH_TEXT = "Yippie, das hast Du toll gemacht! Schau mal, ich habe etwas für Dich!";   // Anreden immer großschreiben (Du, Dich, ...)
+    const FINALE_SPEECH_FALLBACK_S = 6;            // Textdauer, falls audio_4.mp3 nicht abgespielt werden kann
+    const FINALE_SPEECH_HOLD_MS = 800;             // So lange bleibt die fertige Sprechblase nach dem Ende von audio_4.mp3 stehen
+    const FINALE_AFTER_AUDIO4_MS = 1000;           // Pause (mindestens 1 s) nach der Sprechblase, dann niest die Katze
+    const HATSCHI_SNEEZE_OVERRIDE_S = null;        // Zahl = fester Zeitpunkt des Niesens in hatschi.mp3 (Sekunden); null = automatisch (lautester Moment)
+    const HATSCHI_FALLBACK_SNEEZE_MS = 600;        // Zeitpunkt des Niesens, falls die Datei nicht analysiert werden kann
+
+    const ENVELOPE_ASPECT = 704 / 1477;            // Seitenverhältnis von brief.jpg (Höhe / Breite)
+    const ENVELOPE_WIDTH_RATIO = 0.94;             // Endbreite des Umschlags (94 % der Bildschirmbreite)
+    const ENVELOPE_BOTTOM_RATIO = 0.04;            // Abstand des Umschlags zum unteren Rand (Anteil der Bildschirmhöhe)
+    const ENVELOPE_START_SCALE = 0.07;             // Startgröße (sehr klein)
+    const ENVELOPE_START_X = -0.14;                // Startpunkt relativ zur Katze: leicht links ...
+    const ENVELOPE_START_Y = 0.50;                 // ... und unterhalb der Gesichtsmitte (Anteil der Katzenhöhe)
+    const ENVELOPE_SPIRAL_MS = 7000;               // Dauer der drei Runden (vorher 3800 ms, jetzt ca. 1,85-fach: ruhiger und edler)
+    const ENVELOPE_LAPS = 3;                       // Anzahl voller Kreise (gegen den Uhrzeigersinn)
+    const ENVELOPE_OPEN_DELAY_MS = 700;            // Pause nach der Landung, dann klappt die Lasche auf
+    const ENVELOPE_FLAP_MS = 1200;                 // Dauer des Aufklappens
+    const ENVELOPE_PAPER_MS = 1900;                // Dauer des Herausgleitens des Papiers
+    const PAPER_END_BOTTOM = 0.46;                 // Unterkante des Papiers am Ende (Anteil der Umschlaghöhe, von oben)
+    const PAPER_START_TOP = 0.40;                  // Oberkante des Papiers im Umschlag (versteckt hinter der Tasche)
 
     // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
     const LANTERNS = [
@@ -1527,12 +1781,14 @@
     const SFX_FILES = {
       knall: 'knall.mp3',
       richtig: 'richtig.mp3',
-      falsch: 'falsch.mp3'
+      falsch: 'falsch.mp3',
+      hatschi: 'hatschi.mp3'
     };
 
     let audioCtx = null;
     const sfxBuffers = {};     // dekodierte AudioBuffer
     const sfxLeadIn = {};      // Sekunden Stille am Dateianfang (wird beim Abspielen übersprungen)
+    const sfxPeak = {};        // Sekunden bis zum lautesten Moment (z. B. das "-tschi" beim Niesen)
     const sfxPools = {};       // Notlösung: HTMLAudio-Instanzen
     const sfxPoolIndex = {};
 
@@ -1550,6 +1806,27 @@
       return 0;
     }
 
+    // Findet den ersten wirklich lauten Moment der Datei (Fenster à 20 ms, >= 80 % der maximalen Lautstärke)
+    function detectPeakTime(buffer) {
+      try {
+        const data = buffer.getChannelData(0);
+        const win = Math.max(1, Math.round(buffer.sampleRate * 0.02));
+        const rms = [];
+        let maxRms = 0;
+        for (let i = 0; i + win <= data.length; i += win) {
+          let sum = 0;
+          for (let j = i; j < i + win; j++) sum += data[j] * data[j];
+          const v = Math.sqrt(sum / win);
+          rms.push(v);
+          if (v > maxRms) maxRms = v;
+        }
+        for (let k = 0; k < rms.length; k++) {
+          if (rms[k] >= maxRms * 0.8) return (k * win) / buffer.sampleRate;
+        }
+      } catch (err) { /* ignorieren */ }
+      return 0;
+    }
+
     function loadSfx(name) {
       if (!audioCtx || typeof fetch !== 'function') return;
       fetch(SFX_FILES[name])
@@ -1561,6 +1838,7 @@
         .then((decoded) => {
           sfxBuffers[name] = decoded;
           sfxLeadIn[name] = detectLeadIn(decoded);
+          sfxPeak[name] = detectPeakTime(decoded);
         })
         .catch(() => { /* Notlösung (HTMLAudio) greift dann automatisch */ });
     }
@@ -1945,11 +2223,36 @@
         const len = text.length;
         const topStart = text.indexOf(MEMORY_HINT_TOP_PHRASE);
         const bottomStart = text.indexOf(MEMORY_HINT_BOTTOM_PHRASE);
+        const topEnd = topStart + MEMORY_HINT_TOP_PHRASE.length;
         const bottomEnd = bottomStart + MEMORY_HINT_BOTTOM_PHRASE.length;
 
         let useFallback = false;
         let ended = false;
         let shownChars = 0;
+
+        // Zeitgewichtung des Textes: Leerzeichen etwas kürzer, Komma/Punkt = kurze Sprechpause.
+        // So wandert der angezeigte Text (und damit die Hervorhebung) näher am gesprochenen Wort mit.
+        const cum = [0];
+        for (let i = 0; i < len; i++) {
+          const ch = text[i];
+          let w = ch === ' ' ? 0.6 : 1;
+          if (ch === '.') w += 5;
+          else if (ch === ',') w += 2.5;
+          cum.push(cum[i] + w);
+        }
+        const totalWeight = cum[len];
+        const charsForProgress = (prog) => {
+          if (prog >= 1) return len;
+          const target = prog * totalWeight;
+          let lo = 0;
+          let hi = len;
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (cum[mid] <= target) lo = mid;
+            else hi = mid - 1;
+          }
+          return lo;
+        };
 
         if (catAudio3) {
           try { catAudio3.currentTime = 0; } catch (err) { /* ignorieren */ }
@@ -1983,7 +2286,7 @@
 
           const done = ended || (useFallback && wall >= duration) || wall > duration + 6;
           const progress = done ? 1 : Math.min(1, t / (duration * MEMORY_INTRO_TEXT_END_RATIO));
-          shownChars = Math.max(shownChars, Math.ceil(progress * len));
+          shownChars = Math.max(shownChars, charsForProgress(progress));
 
           if (shownChars > 0) {
             speechBubble1.textContent = text.slice(0, shownChars);
@@ -1994,8 +2297,8 @@
           // Hervorhebung nach angezeigtem Text
           let group = null;
           if (topStart >= 0 && bottomStart >= 0) {
-            if (shownChars > topStart && shownChars <= bottomStart) group = 'top';
-            else if (shownChars > bottomStart && shownChars <= bottomEnd + 1) group = 'bottom';
+            if (shownChars > topStart && shownChars <= topEnd + 2) group = 'top';   // "Oben sind Fotos," -> obere 6 Karten
+            else if (shownChars > bottomStart && shownChars <= bottomEnd + 1) group = 'bottom';   // "unten sind Jahreszahlen." -> untere 6 Karten
           }
           setMemoryHint(group);
 
@@ -2101,6 +2404,355 @@
     memoryBoard.addEventListener('click', (event) => {
       const card = event.target.closest('.mem-card');
       if (card) handleMemoryTap(card);
+    });
+
+    // =====================================================================
+    // Finale: Karten fallen weg, Katze niest (hatschi.mp3), roter Umschlag fliegt in einer Spirale heran,
+    // öffnet sich und zieht die Einladung (einladung.jpg) heraus.
+    // =====================================================================
+    const envelope = document.getElementById('envelope');
+    const envPaper = document.getElementById('envPaper');
+    const envFlap = document.getElementById('envFlap');
+    let finaleStarted = false;
+    let envelopeLanded = false;
+    let envelopeGeom = null;     // { vw, vh, envW, envH, E, S, C, R, r0, phi0, sweep }
+    let inviteRatio = 0;         // Breite / Höhe von einladung.jpg, sobald geladen
+
+    function animateEl(el, from, to, duration, easing, delay) {
+      if (typeof el.animate === 'function') {
+        const anim = el.animate(
+          [{ transform: from }, { transform: to }],
+          { duration, delay: delay || 0, easing: easing || 'ease-in-out', fill: 'both' }
+        );
+        return anim.finished.catch(() => {});
+      }
+      el.style.transform = to;
+      return wait(duration + (delay || 0));
+    }
+
+    // einladung.jpg vorladen; Platzhalter bleibt sichtbar, bis das Bild wirklich da ist
+    function initEnvelope() {
+      const img = new Image();
+      img.className = 'paper-img';
+      img.alt = 'Einladung';
+      img.decoding = 'async';
+      img.onload = () => {
+        if (img.naturalWidth && img.naturalHeight) {
+          inviteRatio = img.naturalWidth / img.naturalHeight;
+        }
+        img.classList.add('loaded');
+      };
+      img.onerror = () => img.remove();
+      img.src = 'einladung.jpg';
+      envPaper.appendChild(img);
+    }
+
+    // 1) Alle 12 Karten fallen aufgedeckt, schnell und ohne Geräusch nach unten aus dem Bildschirm
+    function dropAllMemoryCardsAway() {
+      const vh = window.innerHeight;
+      const ordered = [];
+      for (let row = 3; row >= 0; row--) {
+        shuffleArray(memoryCells.filter((c) => c.row === row)).forEach((c) => ordered.push(c));
+      }
+      const jobs = ordered.map((cell, i) => {
+        const rect = cell.el.getBoundingClientRect();
+        const dist = vh - rect.top + 40;
+        return animateEl(
+          cell.el,
+          'translateY(0px)',
+          `translateY(${dist}px)`,
+          FINALE_CARD_FALL_MS,
+          'cubic-bezier(0.5, 0, 0.9, 0.55)',
+          i * FINALE_CARD_STAGGER_MS
+        );
+      });
+      return Promise.all(jobs);
+    }
+
+    // 2) Katze zuckt beim Niesen kurz
+    function catSneezeShake() {
+      if (typeof manekiWrap.animate !== 'function') return;
+      const base = 'translateX(-50%)';
+      manekiWrap.animate(
+        [
+          { transform: `${base} translateY(0px) scale(1, 1)` },
+          { transform: `${base} translateY(6px) scale(1.05, 0.93)`, offset: 0.3 },
+          { transform: `${base} translateY(-5px) scale(0.98, 1.04)`, offset: 0.6 },
+          { transform: `${base} translateY(0px) scale(1, 1)` }
+        ],
+        { duration: 420, easing: 'ease-out' }
+      );
+    }
+
+    // 3) Geometrie der Spirale: Mittelpunkt C liegt senkrecht über dem Endpunkt E, so dass nach genau
+    //    drei Runden (+ kleinem Rest-Winkel) die Position unter C erreicht ist und die Drehung 0° ergibt.
+    function computeEnvelopeGeometry() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const envW = vw * ENVELOPE_WIDTH_RATIO;
+      const envH = envW * ENVELOPE_ASPECT;
+      const bottomMargin = Math.max(vh * ENVELOPE_BOTTOM_RATIO, 16);
+      const E = { x: vw / 2, y: vh - bottomMargin - envH / 2 };   // Endmitte des Umschlags
+
+      const cat = manekiWrap.getBoundingClientRect();
+      const S = {
+        x: Math.min(cat.left + cat.width * (0.5 + ENVELOPE_START_X), E.x - 6),
+        y: Math.min(cat.top + cat.height * ENVELOPE_START_Y, E.y - 10)
+      };
+
+      // Radius der größten Runde: so groß, dass der Startradius sicher kleiner ist
+      const delta = E.y - S.y;
+      let R = Math.max(vh * 0.12, 1.5 * delta + 40);
+      let r0 = Math.hypot(S.x - E.x, S.y - (E.y - R));
+      for (let g = 0; g < 40 && r0 > R * 0.8; g++) {
+        R += 8;
+        r0 = Math.hypot(S.x - E.x, S.y - (E.y - R));
+      }
+      const C = { x: E.x, y: E.y - R };
+
+      // Winkel in Grad, mathematisch (0° = rechts, 90° = oben, -90° = unten), gegen den Uhrzeigersinn wachsend
+      const phi0 = Math.atan2(-(S.y - C.y), S.x - C.x) * 180 / Math.PI;
+      const diff = (((-90 - phi0) % 360) + 360) % 360;   // Rest bis zur Position direkt unter C
+      const sweep = ENVELOPE_LAPS * 360 + diff;
+
+      return { vw, vh, envW, envH, E, S, C, R, r0, phi0, sweep };
+    }
+
+    function applyEnvelopeSize(geom) {
+      envelope.style.setProperty('--ew', geom.envW + 'px');
+      envelope.style.setProperty('--eh', geom.envH + 'px');
+    }
+
+    function setEnvelopeTransform(x, y, rotateDeg, scale, geom) {
+      envelope.style.transform =
+        `translate3d(${(x - geom.envW / 2).toFixed(2)}px, ${(y - geom.envH / 2).toFixed(2)}px, 0) ` +
+        `rotate(${rotateDeg.toFixed(3)}deg) scale(${scale.toFixed(4)})`;
+    }
+
+    // Spirale per requestAnimationFrame:
+    //   Winkel   phi(p) = phi0 + sweep * p      (gegen den Uhrzeigersinn)
+    //   Radius   r(p)   = r0 + (R - r0) * p     (wird mit jeder Runde größer)
+    //   Position = C + r * (cos phi, -sin phi)  (Bildschirm-y zeigt nach unten)
+    //   Drehung  rho(p) = -90 - phi(p)          (CSS, im Uhrzeigersinn positiv): die Unterseite des Umschlags zeigt immer radial nach außen
+    //   Größe    s(p)   = s0 + (1 - s0) * p^1.7
+    function flyEnvelopeSpiral() {
+      return new Promise((resolve) => {
+        const geom = computeEnvelopeGeometry();
+        envelopeGeom = geom;
+        applyEnvelopeSize(geom);
+        envelope.classList.add('show');
+
+        const rad = Math.PI / 180;
+        const startTime = performance.now();
+
+        function frame(now) {
+          const t = Math.min(1, (now - startTime) / ENVELOPE_SPIRAL_MS);
+          const p = (1 - Math.cos(Math.PI * t)) / 2;   // sanfter Start und sanfte Landung
+
+          const phi = geom.phi0 + geom.sweep * p;
+          const r = geom.r0 + (geom.R - geom.r0) * p;
+          const x = geom.C.x + r * Math.cos(phi * rad);
+          const y = geom.C.y - r * Math.sin(phi * rad);
+          const rho = -90 - phi;
+          const scale = ENVELOPE_START_SCALE + (1 - ENVELOPE_START_SCALE) * Math.pow(p, 1.7);
+
+          setEnvelopeTransform(x, y, rho, scale, geom);
+
+          if (t < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            // Endposition exakt: gerade (0°), volle Größe, Mitte = E
+            envelope.style.transform =
+              `translate3d(${(geom.E.x - geom.envW / 2).toFixed(2)}px, ${(geom.E.y - geom.envH / 2).toFixed(2)}px, 0)`;
+            envelopeLanded = true;
+            resolve();
+          }
+        }
+
+        setEnvelopeTransform(geom.S.x, geom.S.y, -90 - geom.phi0, ENVELOPE_START_SCALE, geom);
+        requestAnimationFrame(frame);
+      });
+    }
+
+    // Papier-Größe und Weg: Unterkante des Papiers landet bei PAPER_END_BOTTOM der Umschlaghöhe, Oberkante bleibt auf dem Bildschirm
+    function layoutEnvelopePaper() {
+      const geom = envelopeGeom || computeEnvelopeGeometry();
+      const envTop = geom.E.y - geom.envH / 2;
+      let pw = geom.envW * 0.88;
+      let ratio = inviteRatio > 0 ? Math.min(1.4, Math.max(0.45, inviteRatio)) : 3 / 4;
+      let ph = pw / ratio;
+      const maxH = envTop + PAPER_END_BOTTOM * geom.envH - geom.vh * 0.06;
+      if (ph > maxH) {
+        ph = maxH;
+        pw = ph * ratio;
+      }
+      envelope.style.setProperty('--pw', pw + 'px');
+      envelope.style.setProperty('--ph', ph + 'px');
+      return PAPER_END_BOTTOM * geom.envH - ph - PAPER_START_TOP * geom.envH;   // Verschiebung nach oben (negativ)
+    }
+
+    // 4) Lasche klappt nach oben auf, danach gleitet das Papier gleichmäßig heraus; der Umschlag bleibt fix
+    async function openEnvelopeAndShowInvitation() {
+      await wait(ENVELOPE_OPEN_DELAY_MS);
+      const shift = layoutEnvelopePaper();
+
+      await animateEl(
+        envFlap,
+        'perspective(1100px) rotateX(0deg)',
+        'perspective(1100px) rotateX(180deg)',
+        ENVELOPE_FLAP_MS,
+        'cubic-bezier(0.45, 0.05, 0.3, 1)'
+      );
+      envFlap.classList.add('open');   // offene Lasche hinter das Papier legen
+      await wait(650);                 // offener Umschlag mit der Spitzenkante oben ist kurz zu sehen
+      envelope.classList.add('paper-visible');   // Papier erst jetzt einblenden (vorher komplett unsichtbar im Inneren)
+
+      await animateEl(
+        envPaper,
+        'translateY(0px)',
+        `translateY(${shift}px)`,
+        ENVELOPE_PAPER_MS,
+        'cubic-bezier(0.4, 0, 0.25, 1)'
+      );
+      window.dispatchEvent(new CustomEvent('invitation-shown'));
+    }
+
+    // Sprechblase + Audio, Text synchron zum Audio (mit Satzzeichen-Pausen gewichtet).
+    // Gibt erst Ruhe, wenn das Audio zu Ende ist und die fertige Blase kurz stehen geblieben und wieder verschwunden ist.
+    function runCatSpeech(audioEl, text, fallbackDurationS, holdMs) {
+      return new Promise((resolve) => {
+        resetBubblesForNewSequence();
+
+        const len = text.length;
+        const cum = [0];
+        for (let i = 0; i < len; i++) {
+          const ch = text[i];
+          let w = ch === ' ' ? 0.6 : 1;
+          if (ch === '.' || ch === '!' || ch === '?') w += 5;
+          else if (ch === ',') w += 2.5;
+          cum.push(cum[i] + w);
+        }
+        const totalWeight = cum[len];
+        const charsForProgress = (prog) => {
+          if (prog >= 1) return len;
+          const target = prog * totalWeight;
+          let lo = 0;
+          let hi = len;
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (cum[mid] <= target) lo = mid;
+            else hi = mid - 1;
+          }
+          return lo;
+        };
+
+        let useFallback = false;
+        let ended = false;
+        let shownChars = 0;
+
+        if (audioEl) {
+          try { audioEl.currentTime = 0; } catch (err) { /* ignorieren */ }
+          audioEl.addEventListener('ended', () => { ended = true; }, { once: true });
+          audioEl.addEventListener('error', () => { useFallback = true; }, { once: true });
+          const p = audioEl.play();
+          if (p && typeof p.catch === 'function') p.catch(() => { useFallback = true; });
+        } else {
+          useFallback = true;
+        }
+
+        const startTime = performance.now();
+
+        function frame() {
+          const wall = (performance.now() - startTime) / 1000;
+          let duration = fallbackDurationS;
+          let t = wall;
+
+          if (!useFallback && audioEl) {
+            if (Number.isFinite(audioEl.duration) && audioEl.duration > 1) {
+              duration = audioEl.duration;
+            }
+            if (ended) {
+              t = duration;
+            } else if (!audioEl.paused && audioEl.currentTime > 0) {
+              t = audioEl.currentTime;
+            } else {
+              t = 0;   // Audio läuft noch nicht: Text wartet
+            }
+          }
+
+          const done = ended || (useFallback && wall >= duration) || wall > duration + 6;
+          const progress = done ? 1 : Math.min(1, t / (duration * MEMORY_INTRO_TEXT_END_RATIO));
+          shownChars = Math.max(shownChars, charsForProgress(progress));
+
+          if (shownChars > 0) {
+            speechBubble1.textContent = text.slice(0, shownChars);
+            speechBubble1.classList.remove('hidden-away');
+            speechBubble1.classList.add('visible');
+          }
+
+          if (!done) {
+            requestAnimationFrame(frame);
+          } else {
+            speechBubble1.textContent = text;
+            window.setTimeout(() => {
+              hideBothBubbles();
+              resolve();
+            }, holdMs);
+          }
+        }
+
+        requestAnimationFrame(frame);
+      });
+    }
+
+    async function runMemoryFinale() {
+      if (finaleStarted) return;
+      finaleStarted = true;
+
+      // Dunklen Hintergrund ausblenden und Katze wieder einblenden (steht hinter den Karten vor dem geschlossenen Vorhang)
+      manekiWrap.style.display = '';
+      memoryBoard.classList.remove('covered');
+      memoryBoard.classList.remove('ready');
+
+      // Karten fallen aufgedeckt und ohne Geräusch aus dem Bild
+      await dropAllMemoryCardsAway();
+      memoryCells.forEach((c) => { c.el.style.visibility = 'hidden'; });
+      memoryBoard.classList.remove('show');
+
+      // Mindestens 1 Sekunde Pause, dann lobt die Katze (audio_4.mp3 + Sprechblase), danach wieder mindestens 1 Sekunde Pause
+      await wait(FINALE_BEFORE_AUDIO4_MS);
+      await runCatSpeech(catAudio4, FINALE_SPEECH_TEXT, FINALE_SPEECH_FALLBACK_S, FINALE_SPEECH_HOLD_MS);
+      await wait(FINALE_AFTER_AUDIO4_MS);
+
+      // Erst jetzt niest die Katze (hatschi.mp3); der Umschlag erscheint im Moment des Niesens
+      const usedWebAudio = playSfx('hatschi');
+      if (!usedWebAudio) playSfxFallback('hatschi');
+
+      let sneezeMs = HATSCHI_FALLBACK_SNEEZE_MS;
+      if (typeof HATSCHI_SNEEZE_OVERRIDE_S === 'number') {
+        sneezeMs = HATSCHI_SNEEZE_OVERRIDE_S * 1000;
+      } else if (usedWebAudio) {
+        sneezeMs = Math.max(0, ((sfxPeak.hatschi || 0) - (sfxLeadIn.hatschi || 0)) * 1000);
+      }
+      await wait(sneezeMs);
+
+      catSneezeShake();
+      await flyEnvelopeSpiral();
+      await openEnvelopeAndShowInvitation();
+    }
+
+    window.addEventListener('memory-won', () => {
+      window.setTimeout(runMemoryFinale, FINALE_START_DELAY_MS);
+    });
+
+    // Bei Drehung/Größenänderung des Fensters die Endposition des gelandeten Umschlags neu berechnen
+    window.addEventListener('resize', () => {
+      if (!envelopeLanded) return;
+      const geom = computeEnvelopeGeometry();
+      envelopeGeom = geom;
+      applyEnvelopeSize(geom);
+      envelope.style.transform =
+        `translate3d(${(geom.E.x - geom.envW / 2).toFixed(2)}px, ${(geom.E.y - geom.envH / 2).toFixed(2)}px, 0)`;
     });
 
     // --- Winkekatze: GIF-Prüfung mit automatischem Fallback auf freigestelltes winkekatze.jpg + Arm-Animation ---
@@ -2287,6 +2939,8 @@
     buildMemoryBoard();
     // Soundeffekte schon jetzt vorladen und dekodieren (Wiedergabe wird erst im Start-Klick freigeschaltet)
     initSfx();
+    // einladung.jpg vorladen (Platzhalter bleibt, bis das Bild da ist)
+    initEnvelope();
 
     window.addEventListener('DOMContentLoaded', () => {
       window.setTimeout(() => {
@@ -2305,7 +2959,8 @@
       unlockAudio(catAudio1);
       unlockAudio(catAudio2);
       unlockAudio(catAudio3);
-      unlockSfx();   // Web Audio starten + Notlösungs-Audios freischalten (knall, richtig, falsch)
+      unlockAudio(catAudio4);
+      unlockSfx();   // Web Audio starten + Notlösungs-Audios freischalten (knall, richtig, falsch, hatschi)
 
       window.setTimeout(() => {
         stage.classList.add('hidden');
