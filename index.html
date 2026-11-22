@@ -838,6 +838,56 @@
     .mem-logo.loaded {
       opacity: 1;
     }
+
+    /* --- Sprechblase beim Memory-Auftritt: liegt über dem Spielfeld (z-index 50) --- */
+    .speech-stack.above-board {
+      z-index: 60;
+    }
+
+    /* --- Dezente Hervorhebung ganzer Reihen während der Ansage --- */
+    .mem-face {
+      transition: box-shadow 0.45s ease;
+    }
+
+    .mem-card.hint .mem-face {
+      box-shadow:
+        0 0 0 2px rgba(255, 236, 160, 0.95),
+        0 0 16px 4px rgba(255, 214, 112, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .mem-card.hint .mem-back::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: linear-gradient(115deg, transparent 30%, rgba(255, 240, 180, 0.55) 50%, transparent 70%);
+      background-size: 250% 100%;
+      animation: mem-shimmer 1.6s ease-in-out infinite;
+    }
+
+    @keyframes mem-shimmer {
+      0%   { background-position: 160% 0; }
+      100% { background-position: -60% 0; }
+    }
+
+    /* --- Spielbetrieb --- */
+    .memory-board.ready .mem-card {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mem-card.matched {
+      cursor: default;
+    }
+
+    .mem-card.matched .mem-face {
+      box-shadow:
+        0 0 0 2px #ffe9a0,
+        0 0 14px 3px rgba(255, 214, 112, 0.7),
+        0 4px 10px rgba(0, 0, 0, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -915,9 +965,11 @@
     Audio-Dateien der Winkekatze:
     - audio_1.mp3: Erste Sprachnachricht nach dem Öffnen des Vorhangs
     - audio_2.mp3: Zweite Sprachnachricht, sobald alle 3 Laternen-Stufen eingeschaltet sind
+    - audio_3.mp3: Dritte Sprachnachricht (Memory-Erklärung), nachdem die Katze zwischen den Karten hervorgelugt hat
   -->
   <audio id="catAudio1" src="audio_1.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio2" src="audio_2.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio3" src="audio_3.mp3" preload="auto" playsinline></audio>
 
   <script>
     const stage = document.getElementById('stage');
@@ -934,6 +986,7 @@
     const memoryBoard = document.getElementById('memoryBoard');
     const catAudio1 = document.getElementById('catAudio1');
     const catAudio2 = document.getElementById('catAudio2');
+    const catAudio3 = document.getElementById('catAudio3');
 
     // Konfiguration für Winkekatze:
     // Ist winkekatze.gif vorhanden, wird direkt das GIF genutzt,
@@ -972,11 +1025,33 @@
     // Memory-Spielfeld: Platzhalter-Jahreszahlen (Jahreszahl Nr. n gehört zu bild<n>.jpg)
     const MEMORY_YEARS = ['1968', '1975', '1984', '1992', '2001', '2010'];
     const MEMORY_IMAGE_COUNT = 6;
-    const MEMORY_FALL_MIN_MS = 700;        // Fallzeit einer Karte (kurzer Weg)
-    const MEMORY_FALL_MAX_MS = 1050;       // Fallzeit einer Karte (langer Weg)
-    const MEMORY_PAUSE_BETWEEN_MS = 180;   // Pause zwischen Landung und Start der nächsten Karte
-    const MEMORY_COVER_DELAY_MS = 250;     // Wartezeit nach der letzten Landung, bis der Hintergrund einblendet
-    const KNALL_POOL_SIZE = 4;             // Anzahl paralleler Audio-Instanzen für knall.mp3
+    // Pärchen: Jahreszahlen werden aufsteigend sortiert, die kleinste gehört zu bild1.jpg, die größte zu bild6.jpg
+    const MEMORY_YEARS_SORTED = MEMORY_YEARS.slice().sort((x, y) => Number(x) - Number(y));
+    const MEMORY_PAIR_COUNT = 6;
+
+    // Fall-Animation
+    const MEMORY_FALL_MIN_MS = 700;             // Fallzeit einer Karte (kurzer Weg)
+    const MEMORY_FALL_MAX_MS = 1050;            // Fallzeit einer Karte (langer Weg)
+    const MEMORY_PAUSE_BETWEEN_MS = 180;        // Pause zwischen Landung und Start der nächsten Karte
+    const KNALL_POOL_SIZE = 4;                  // Notlösung ohne Web Audio: Anzahl paralleler Audio-Instanzen
+
+    // Katzen-Auftritt nach der letzten Landung
+    const MEMORY_POST_KNALL_PAUSE_MS = 1000;    // Pause NACH Landung + verklungenem knall.mp3 (mindestens 1 Sekunde)
+    const MEMORY_PEEK_GAP_PX = 6;               // Abstand im Raster (wie --g im CSS)
+
+    // Memory-Ansage (audio_3.mp3), alles in einer einzigen Sprechblase.
+    // Hinweis: Anreden (Du, Dich, Dir, Dein, Deine, Euch, Euer) immer großschreiben, falls der Text einmal angepasst wird.
+    const MEMORY_INTRO_TEXT = "Auf geht's. Wir spielen eine Runde Memory gemeinsam. Oben sind Fotos, unten sind Jahreszahlen. Decke nacheinander die Memory Karten auf und finde alle Pärchen. Immer ein Bild und eine Jahreszahl.";
+    const MEMORY_HINT_TOP_PHRASE = 'Oben sind Fotos';
+    const MEMORY_HINT_BOTTOM_PHRASE = 'unten sind Jahreszahlen';
+    const MEMORY_INTRO_FALLBACK_DURATION_S = 16;   // Textdauer, falls audio_3.mp3 nicht abgespielt werden kann
+    const MEMORY_INTRO_TEXT_END_RATIO = 0.95;      // Text ist bei 95 % der Audiolänge vollständig (kleiner = Text früher fertig)
+    const MEMORY_INTRO_HOLD_MS = 1200;             // So lange bleibt die fertige Sprechblase nach dem Audio stehen
+
+    // Spiellogik
+    const MEMORY_FLIP_MS = 700;                    // Dauer der Umdreh-Animation (wie im CSS)
+    const MEMORY_EVAL_DELAY_MS = 750;              // Wartezeit nach dem Aufdecken der 2. Karte bis zur Auswertung
+    const MEMORY_WRONG_SHOW_MS = 900;              // So lange bleiben falsche Karten offen, bevor sie zurückdrehen
 
     // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
     const LANTERNS = [
@@ -1026,7 +1101,12 @@
     // Memory-Status
     let memoryBuilt = false;
     let memoryStarted = false;
-    let memoryComplete = false;   // true, sobald alle 12 Karten gelandet sind und das Feld geschlossen ist
+    let memoryComplete = false;   // true, sobald alle 12 Karten gelandet sind
+    let memoryReady = false;      // true, sobald der Katzen-Auftritt vorbei ist und das Spiel freigegeben ist
+    let memoryLocked = false;     // blockiert Taps während der Auswertung
+    let memoryOpen = [];          // aktuell aufgedeckte, noch nicht ausgewertete Karten
+    let memoryMatched = 0;        // gefundene Pärchen
+    let memoryWon = false;        // true, sobald alle 6 Pärchen gefunden wurden
     const memoryCells = [];   // { el, row, col } – row 0 = oben, row 3 = unten
 
     const nodesById = new Map();
@@ -1440,21 +1520,97 @@
       pointerDownOnCat = null;
     });
 
-    // --- Memory-Spielfeld: 3 Spalten x 4 Reihen ---
-    // Reihe 1 + 2 (oben): 6 Bildkarten | Reihe 3 + 4 (unten): 6 Jahreszahlkarten
-    // Jede Karte hat Vorderseite (Bild/Jahreszahl, verdeckt) und Rückseite (logo.png, liegt oben).
+    // =====================================================================
+    // Soundeffekte (knall.mp3, richtig.mp3, falsch.mp3)
+    // Primär über Web Audio (vorab dekodiert, exakt planbar), mit HTMLAudio als Notlösung.
+    // =====================================================================
+    const SFX_FILES = {
+      knall: 'knall.mp3',
+      richtig: 'richtig.mp3',
+      falsch: 'falsch.mp3'
+    };
 
-    // knall.mp3: Pool aus mehreren Audio-Instanzen, damit auch schnell aufeinanderfolgende Landungen sauber abspielen
-    const knallPool = Array.from({ length: KNALL_POOL_SIZE }, () => {
-      const a = new Audio('knall.mp3');
-      a.preload = 'auto';
-      return a;
-    });
-    let knallIndex = 0;
+    let audioCtx = null;
+    const sfxBuffers = {};     // dekodierte AudioBuffer
+    const sfxLeadIn = {};      // Sekunden Stille am Dateianfang (wird beim Abspielen übersprungen)
+    const sfxPools = {};       // Notlösung: HTMLAudio-Instanzen
+    const sfxPoolIndex = {};
 
-    function playKnall() {
-      const a = knallPool[knallIndex % knallPool.length];
-      knallIndex++;
+    function detectLeadIn(buffer) {
+      // Findet den ersten hörbaren Moment, damit MP3-Vorlauf/Stille den Knall nicht verspätet
+      try {
+        const data = buffer.getChannelData(0);
+        const threshold = 0.03;
+        for (let i = 0; i < data.length; i++) {
+          if (Math.abs(data[i]) > threshold) {
+            return Math.max(0, i / buffer.sampleRate - 0.004);
+          }
+        }
+      } catch (err) { /* ignorieren */ }
+      return 0;
+    }
+
+    function loadSfx(name) {
+      if (!audioCtx || typeof fetch !== 'function') return;
+      fetch(SFX_FILES[name])
+        .then((res) => {
+          if (!res.ok) throw new Error('sfx not found');
+          return res.arrayBuffer();
+        })
+        .then((arr) => new Promise((resolve, reject) => audioCtx.decodeAudioData(arr, resolve, reject)))
+        .then((decoded) => {
+          sfxBuffers[name] = decoded;
+          sfxLeadIn[name] = detectLeadIn(decoded);
+        })
+        .catch(() => { /* Notlösung (HTMLAudio) greift dann automatisch */ });
+    }
+
+    function initSfx() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        try {
+          audioCtx = new AC();
+        } catch (err) {
+          audioCtx = null;
+        }
+      }
+      Object.keys(SFX_FILES).forEach(loadSfx);
+    }
+
+    // Muss direkt im Start-Klick laufen (iOS/Safari)
+    function unlockSfx() {
+      if (audioCtx) {
+        try {
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const silent = audioCtx.createBuffer(1, 1, 22050);
+          const src = audioCtx.createBufferSource();
+          src.buffer = silent;
+          src.connect(audioCtx.destination);
+          src.start(0);
+        } catch (err) { /* ignorieren */ }
+      }
+      Object.keys(SFX_FILES).forEach((name) => {
+        if (!sfxBuffers[name]) ensureFallbackPool(name).forEach(unlockAudio);
+      });
+    }
+
+    function ensureFallbackPool(name) {
+      if (!sfxPools[name]) {
+        const size = name === 'knall' ? KNALL_POOL_SIZE : 2;
+        sfxPools[name] = Array.from({ length: size }, () => {
+          const a = new Audio(SFX_FILES[name]);
+          a.preload = 'auto';
+          return a;
+        });
+        sfxPoolIndex[name] = 0;
+      }
+      return sfxPools[name];
+    }
+
+    function playSfxFallback(name) {
+      const pool = ensureFallbackPool(name);
+      const a = pool[sfxPoolIndex[name] % pool.length];
+      sfxPoolIndex[name]++;
       try {
         a.pause();
         a.currentTime = 0;
@@ -1463,6 +1619,51 @@
       if (p && typeof p.catch === 'function') p.catch(() => {});
     }
 
+    // Spielt über Web Audio ab. atPerfMs = Zeitpunkt (performance.now()-Zeitbasis), zu dem der Klang erklingen soll.
+    // Gibt true zurück, wenn Web Audio genutzt wurde.
+    function playSfx(name, atPerfMs) {
+      const buf = sfxBuffers[name];
+      if (!audioCtx || !buf) return false;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(audioCtx.destination);
+
+        let when = audioCtx.currentTime;
+        if (typeof atPerfMs === 'number' && Number.isFinite(atPerfMs)) {
+          const delaySec = (atPerfMs - performance.now()) / 1000;
+          const latency = audioCtx.outputLatency || audioCtx.baseLatency || 0;
+          when = Math.max(audioCtx.currentTime, audioCtx.currentTime + delaySec - latency);
+        }
+        src.start(when, sfxLeadIn[name] || 0);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function playSfxNow(name) {
+      if (!playSfx(name)) playSfxFallback(name);
+    }
+
+    function sfxDurationMs(name) {
+      const buf = sfxBuffers[name];
+      if (buf) return Math.max(0, (buf.duration - (sfxLeadIn[name] || 0)) * 1000);
+      const pool = ensureFallbackPool(name);
+      const d = pool[0] && Number.isFinite(pool[0].duration) ? pool[0].duration * 1000 : 800;
+      return d;
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    // =====================================================================
+    // Memory-Spielfeld: 3 Spalten x 4 Reihen
+    // Reihe 1 + 2 (oben): 6 Bildkarten | Reihe 3 + 4 (unten): 6 Jahreszahlkarten
+    // Jede Karte hat Vorderseite (Bild/Jahreszahl, verdeckt) und Rückseite (logo.png, liegt oben).
+    // =====================================================================
     function shuffleArray(list) {
       const arr = list.slice();
       for (let i = arr.length - 1; i > 0; i--) {
@@ -1505,7 +1706,8 @@
     function createImageCard(n) {
       const card = document.createElement('div');
       card.className = 'mem-card mem-image';
-      card.dataset.pair = String(n);
+      card.dataset.type = 'image';
+      card.dataset.pair = String(n);   // bild<n>.jpg gehört zur n-kleinsten Jahreszahl
 
       const inner = document.createElement('div');
       inner.className = 'mem-inner';
@@ -1541,10 +1743,12 @@
       return card;
     }
 
-    function createYearCard(index) {
+    // rank 0 = kleinste Jahreszahl (gehört zu bild1.jpg) ... rank 5 = größte Jahreszahl (gehört zu bild6.jpg)
+    function createYearCard(rank) {
       const card = document.createElement('div');
       card.className = 'mem-card mem-year';
-      card.dataset.pair = String(index + 1);
+      card.dataset.type = 'year';
+      card.dataset.pair = String(rank + 1);
 
       const inner = document.createElement('div');
       inner.className = 'mem-inner';
@@ -1552,7 +1756,7 @@
       const front = document.createElement('div');
       front.className = 'mem-face mem-front';
       const label = document.createElement('span');
-      label.textContent = MEMORY_YEARS[index];
+      label.textContent = MEMORY_YEARS_SORTED[rank];
       front.appendChild(label);
 
       inner.appendChild(front);
@@ -1571,7 +1775,7 @@
 
       // Innerhalb der Gruppen gemischt: 6 Bilder auf die oberen 6 Felder, 6 Jahre auf die unteren 6 Felder
       const imageOrder = shuffleArray(Array.from({ length: MEMORY_IMAGE_COUNT }, (_, i) => i + 1));
-      const yearOrder = shuffleArray(Array.from({ length: MEMORY_YEARS.length }, (_, i) => i));
+      const yearOrder = shuffleArray(Array.from({ length: MEMORY_YEARS_SORTED.length }, (_, i) => i));
 
       for (let slot = 0; slot < 6; slot++) {
         const row = Math.floor(slot / 3);   // 0 oder 1  -> Reihe 1 + 2
@@ -1594,7 +1798,8 @@
       }
     }
 
-    // Eine Karte fällt, bei Landung: knall.mp3 + kleines Nachfedern, dann (nach kurzer Pause) die nächste Karte
+    // Eine Karte fällt. knall.mp3 wird exakt auf den Landezeitpunkt (Startzeit der Animation + Fallzeit) eingeplant.
+    // Danach federt die Karte nach, und nach kurzer Pause fällt die nächste Karte.
     function dropMemoryCard(order, i) {
       if (i >= order.length) {
         finishMemoryBoard();
@@ -1608,7 +1813,7 @@
       const next = () => window.setTimeout(() => dropMemoryCard(order, i + 1), MEMORY_PAUSE_BETWEEN_MS);
 
       if (typeof el.animate !== 'function') {
-        playKnall();
+        playSfxNow('knall');
         next();
         return;
       }
@@ -1621,8 +1826,20 @@
         { duration: cell.dur, easing: 'cubic-bezier(0.5, 0, 0.9, 0.55)', fill: 'both' }
       );
 
+      let knallScheduled = false;
+      if (fallAnim.ready && typeof fallAnim.ready.then === 'function') {
+        fallAnim.ready.then(() => {
+          const startTime = Number(fallAnim.startTime);
+          if (Number.isFinite(startTime)) {
+            knallScheduled = playSfx('knall', startTime + cell.dur);
+          }
+        }).catch(() => {});
+      }
+
       fallAnim.onfinish = () => {
-        playKnall();
+        // Notlösung: falls der Klang nicht vorab eingeplant werden konnte, jetzt beim Aufsetzen abspielen
+        if (!knallScheduled) playSfxFallback('knall');
+
         el.animate(
           [
             { transform: 'translateY(0px)' },
@@ -1635,14 +1852,13 @@
       };
     }
 
-    // Alle 12 Karten liegen: Hintergrund blendet ein, Feld ist geschlossen.
-    // Die Katze bleibt bewusst im DOM (hinter dem Spielfeld, z-index 35 < 50), damit sie im nächsten Schritt wieder genutzt werden kann.
+    // Letzte Karte gelandet: mindestens 1 Sekunde warten, nachdem knall.mp3 verklungen ist, dann lugt die Katze hervor.
     function finishMemoryBoard() {
+      memoryComplete = true;
+      window.dispatchEvent(new CustomEvent('memory-complete'));
       window.setTimeout(() => {
-        memoryBoard.classList.add('covered');
-        memoryComplete = true;
-        window.dispatchEvent(new CustomEvent('memory-complete'));
-      }, MEMORY_COVER_DELAY_MS);
+        runMemoryCatPeek();
+      }, sfxDurationMs('knall') + MEMORY_POST_KNALL_PAUSE_MS);
     }
 
     function startMemoryBoard() {
@@ -1672,6 +1888,220 @@
       memoryBoard.classList.add('show');
       dropMemoryCard(order, 0);
     }
+
+    // =====================================================================
+    // Katzen-Auftritt: Karte(n) vor der Katze rutschen zur Seite, Katze lugt hervor,
+    // audio_3.mp3 + eine Sprechblase, Hervorhebung der Reihen, danach verschwindet die Katze wieder.
+    // =====================================================================
+    function animateTransform(el, from, to, duration) {
+      if (typeof el.animate === 'function') {
+        const anim = el.animate(
+          [{ transform: from }, { transform: to }],
+          { duration, easing: 'cubic-bezier(0.4, 0.1, 0.2, 1)', fill: 'both' }
+        );
+        return anim.finished.catch(() => {});
+      }
+      el.style.transform = to;
+      return wait(duration);
+    }
+
+    function slideCells(cells, dx, f0, f1, duration) {
+      return Promise.all(cells.map((c) =>
+        animateTransform(c.el, `translateX(${dx * f0}px)`, `translateX(${dx * f1}px)`, duration)
+      ));
+    }
+
+    // Karten, die die Katze gerade verdecken (in der Praxis die untere mittlere Karte)
+    function getCatCoveringCells() {
+      const cat = manekiWrap.getBoundingClientRect();
+      const catArea = Math.max(1, cat.width * cat.height);
+      let cells = memoryCells.filter((c) => {
+        const r = c.el.getBoundingClientRect();
+        const w = Math.min(r.right, cat.right) - Math.max(r.left, cat.left);
+        const h = Math.min(r.bottom, cat.bottom) - Math.max(r.top, cat.top);
+        return w > 0 && h > 0 && (w * h) / catArea > 0.08;
+      });
+      if (!cells.length) {
+        cells = memoryCells.filter((c) => c.row === 3 && c.col === 1);
+      }
+      return cells;
+    }
+
+    // Dezente Hervorhebung: 'top' = obere 6 Karten, 'bottom' = untere 6 Karten, null = keine
+    function setMemoryHint(group) {
+      memoryCells.forEach((c) => {
+        const isTop = c.row <= 1;
+        const active = (group === 'top' && isTop) || (group === 'bottom' && !isTop);
+        c.el.classList.toggle('hint', active);
+      });
+    }
+
+    // Eine einzige Sprechblase, Text synchron zu audio_3.mp3; Hervorhebung passend zu "Oben sind Fotos" / "unten sind Jahreszahlen"
+    function runMemoryIntro() {
+      return new Promise((resolve) => {
+        resetBubblesForNewSequence();
+
+        const text = MEMORY_INTRO_TEXT;
+        const len = text.length;
+        const topStart = text.indexOf(MEMORY_HINT_TOP_PHRASE);
+        const bottomStart = text.indexOf(MEMORY_HINT_BOTTOM_PHRASE);
+        const bottomEnd = bottomStart + MEMORY_HINT_BOTTOM_PHRASE.length;
+
+        let useFallback = false;
+        let ended = false;
+        let shownChars = 0;
+
+        if (catAudio3) {
+          try { catAudio3.currentTime = 0; } catch (err) { /* ignorieren */ }
+          catAudio3.addEventListener('ended', () => { ended = true; }, { once: true });
+          catAudio3.addEventListener('error', () => { useFallback = true; }, { once: true });
+          const p = catAudio3.play();
+          if (p && typeof p.catch === 'function') p.catch(() => { useFallback = true; });
+        } else {
+          useFallback = true;
+        }
+
+        const startTime = performance.now();
+
+        function frame() {
+          const wall = (performance.now() - startTime) / 1000;
+          let duration = MEMORY_INTRO_FALLBACK_DURATION_S;
+          let t = wall;
+
+          if (!useFallback && catAudio3) {
+            if (Number.isFinite(catAudio3.duration) && catAudio3.duration > 2) {
+              duration = catAudio3.duration;
+            }
+            if (ended) {
+              t = duration;
+            } else if (!catAudio3.paused && catAudio3.currentTime > 0) {
+              t = catAudio3.currentTime;
+            } else {
+              t = 0;   // Audio läuft noch nicht: Text wartet
+            }
+          }
+
+          const done = ended || (useFallback && wall >= duration) || wall > duration + 6;
+          const progress = done ? 1 : Math.min(1, t / (duration * MEMORY_INTRO_TEXT_END_RATIO));
+          shownChars = Math.max(shownChars, Math.ceil(progress * len));
+
+          if (shownChars > 0) {
+            speechBubble1.textContent = text.slice(0, shownChars);
+            speechBubble1.classList.remove('hidden-away');
+            speechBubble1.classList.add('visible');
+          }
+
+          // Hervorhebung nach angezeigtem Text
+          let group = null;
+          if (topStart >= 0 && bottomStart >= 0) {
+            if (shownChars > topStart && shownChars <= bottomStart) group = 'top';
+            else if (shownChars > bottomStart && shownChars <= bottomEnd + 1) group = 'bottom';
+          }
+          setMemoryHint(group);
+
+          if (!done) {
+            requestAnimationFrame(frame);
+          } else {
+            speechBubble1.textContent = text;
+            setMemoryHint(null);
+            window.setTimeout(resolve, MEMORY_INTRO_HOLD_MS);
+          }
+        }
+
+        requestAnimationFrame(frame);
+      });
+    }
+
+    async function runMemoryCatPeek() {
+      const peekCells = getCatCoveringCells();
+      const cardWidth = peekCells[0].el.getBoundingClientRect().width;
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      const dx = dir * (cardWidth + MEMORY_PEEK_GAP_PX) * 0.96;
+
+      // Karte rutscht UNTER die Nachbarkarte (z-index 0 < 1), erst ein Stück (Katze lugt), dann ganz
+      peekCells.forEach((c) => { c.el.style.zIndex = '0'; });
+      await slideCells(peekCells, dx, 0, 0.5, 650);
+      await wait(450);
+      await slideCells(peekCells, dx, 0.5, 1, 550);
+      await wait(500);
+
+      // Sprechblase über das Spielfeld legen und Ansage starten
+      speechStack.classList.add('above-board');
+      await runMemoryIntro();
+
+      // Ansage vorbei: Blase weg, Karten rutschen zurück vor die Katze
+      hideBothBubbles();
+      await slideCells(peekCells, dx, 1, 0, 750);
+      peekCells.forEach((c) => { c.el.style.zIndex = ''; });
+      speechStack.classList.remove('above-board');
+
+      // Spielfeld schließen (Hintergrund), Katze verschwindet aus der Szene, Spiel freigeben
+      memoryBoard.classList.add('covered');
+      memoryBoard.classList.add('ready');
+      memoryReady = true;
+      window.dispatchEvent(new CustomEvent('memory-ready'));
+      window.setTimeout(() => {
+        manekiWrap.style.display = 'none';
+      }, 800);
+    }
+
+    // =====================================================================
+    // Spiellogik: Bild + zugehörige Jahreszahl = Pärchen
+    // =====================================================================
+    function handleMemoryTap(card) {
+      if (!memoryReady || memoryLocked || memoryWon) return;
+      if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+      card.classList.add('flipped');
+      memoryOpen.push(card);
+
+      if (memoryOpen.length === 2) {
+        memoryLocked = true;   // weitere Taps blockieren, bis ausgewertet ist
+        window.setTimeout(evaluateMemoryPair, MEMORY_EVAL_DELAY_MS);
+      }
+    }
+
+    function evaluateMemoryPair() {
+      const [a, b] = memoryOpen;
+      if (!a || !b) {
+        memoryOpen = [];
+        memoryLocked = false;
+        return;
+      }
+
+      // Treffer nur, wenn ein Bild und eine Jahreszahl zusammengehören
+      const isMatch = a.dataset.type !== b.dataset.type && a.dataset.pair === b.dataset.pair;
+
+      if (isMatch) {
+        a.classList.add('matched');
+        b.classList.add('matched');
+        playSfxNow('richtig');
+        memoryOpen = [];
+        memoryMatched++;
+
+        if (memoryMatched >= MEMORY_PAIR_COUNT) {
+          memoryWon = true;   // alle 6 Pärchen gefunden, alle 12 Karten offen
+          window.dispatchEvent(new CustomEvent('memory-won'));
+        } else {
+          memoryLocked = false;
+        }
+      } else {
+        playSfxNow('falsch');
+        window.setTimeout(() => {
+          a.classList.remove('flipped');
+          b.classList.remove('flipped');
+          window.setTimeout(() => {
+            memoryOpen = [];
+            memoryLocked = false;
+          }, MEMORY_FLIP_MS + 50);
+        }, MEMORY_WRONG_SHOW_MS);
+      }
+    }
+
+    memoryBoard.addEventListener('click', (event) => {
+      const card = event.target.closest('.mem-card');
+      if (card) handleMemoryTap(card);
+    });
 
     // --- Winkekatze: GIF-Prüfung mit automatischem Fallback auf freigestelltes winkekatze.jpg + Arm-Animation ---
     function removeWhiteBackground(sourceImg) {
@@ -1855,6 +2285,8 @@
     initManekiNeko();
     // Spielfeld schon jetzt unsichtbar aufbauen, damit bild1.jpg bis bild6.jpg im Hintergrund vorgeladen werden
     buildMemoryBoard();
+    // Soundeffekte schon jetzt vorladen und dekodieren (Wiedergabe wird erst im Start-Klick freigeschaltet)
+    initSfx();
 
     window.addEventListener('DOMContentLoaded', () => {
       window.setTimeout(() => {
@@ -1872,7 +2304,8 @@
       // Audio direkt im Klick freischalten (wichtig für iOS/Safari)
       unlockAudio(catAudio1);
       unlockAudio(catAudio2);
-      knallPool.forEach(unlockAudio);
+      unlockAudio(catAudio3);
+      unlockSfx();   // Web Audio starten + Notlösungs-Audios freischalten (knall, richtig, falsch)
 
       window.setTimeout(() => {
         stage.classList.add('hidden');
