@@ -189,6 +189,8 @@
        35: Winkekatze kurz vor dem Schließen des Vorhangs (ÜBER dem Vorhang [28], vor dem Hintergrundbild)
        45: Sprechblasen über der Katze
        50: Memory-Spielfeld (ÜBER der Katze [35], verdeckt sie am Ende vollständig)
+       56: Roter Umschlag (Finale)
+       70: Sprechblase auf dem Umschlag (nur während "Umschlag zur Seite schieben")
     --- */
     .invitation-stage {
       position: fixed;
@@ -496,6 +498,8 @@
 
     /* --- Theatervorhang-Overlay (z-index 28: über Katze [18] während des Öffnens, unter Katze [35] beim Schließen) --- */
     .curtain-container {
+      --ajar-gap: 9.5vw;   /* Verschiebung jeder Vorhanghälfte nach außen beim "fast geschlossenen" Vorhang (Spalt ca. 16 vw) */
+
       position: fixed;
       inset: 0;
       width: 100vw;
@@ -1087,6 +1091,40 @@
       clip-path: polygon(0% 100.00%, 100% 100.00%, 100.00% 13.65%, 99.59% 13.66%, 98.64% 13.96%, 97.70% 15.09%, 96.75% 16.69%, 95.80% 17.69%, 94.85% 18.11%, 93.90% 18.46%, 92.95% 18.73%, 92.01% 19.08%, 91.06% 20.13%, 90.11% 22.04%, 89.16% 23.13%, 88.21% 23.14%, 87.26% 23.14%, 86.31% 23.14%, 85.37% 22.50%, 84.42% 21.88%, 83.47% 21.63%, 82.52% 20.35%, 81.57% 18.91%, 80.62% 18.45%, 79.67% 18.32%, 78.73% 17.53%, 77.78% 16.48%, 76.83% 16.31%, 75.88% 16.28%, 74.93% 16.27%, 73.98% 16.37%, 73.04% 17.01%, 72.09% 17.93%, 71.14% 18.27%, 70.19% 18.60%, 69.24% 18.75%, 68.29% 18.90%, 67.34% 19.91%, 66.40% 21.88%, 65.45% 23.36%, 64.50% 24.43%, 63.55% 25.57%, 62.60% 25.71%, 61.65% 25.71%, 60.70% 25.71%, 59.76% 25.46%, 58.81% 22.43%, 57.86% 16.95%, 56.91% 13.37%, 55.96% 11.68%, 55.01% 9.85%, 54.07% 8.59%, 53.12% 7.87%, 52.17% 7.44%, 51.22% 7.37%, 50.27% 7.38%, 49.32% 7.46%, 48.37% 7.51%, 47.43% 7.55%, 46.48% 8.48%, 45.53% 10.30%, 44.58% 12.51%, 43.63% 14.31%, 42.68% 14.61%, 41.73% 14.61%, 40.79% 14.84%, 39.84% 15.85%, 38.89% 16.56%, 37.94% 18.56%, 36.99% 19.90%, 36.04% 19.90%, 35.09% 19.90%, 34.15% 19.89%, 33.20% 19.82%, 32.25% 19.34%, 31.30% 18.99%, 30.35% 17.55%, 29.40% 15.15%, 28.46% 14.24%, 27.51% 14.11%, 26.56% 14.48%, 25.61% 15.78%, 24.66% 16.47%, 23.71% 16.87%, 22.76% 17.35%, 21.82% 17.43%, 20.87% 17.43%, 19.92% 17.43%, 18.97% 17.08%, 18.02% 15.04%, 17.07% 14.20%, 16.12% 14.20%, 15.18% 15.14%, 14.23% 17.12%, 13.28% 17.33%, 12.33% 17.33%, 11.38% 17.33%, 10.43% 17.33%, 9.49% 17.33%, 8.54% 17.33%, 7.59% 17.33%, 6.64% 17.33%, 5.69% 16.45%, 4.74% 14.18%, 3.79% 13.59%, 2.85% 13.59%, 1.90% 13.59%, 0.95% 13.59%, 0.00% 13.59%);
       background: linear-gradient(180deg, #6e0a14 0%, #8f1422 100%);
     }
+
+    /* =====================================================================
+       NEU: Umschlag verschiebbar (Umschlag + Lasche + Einladung = eine Einheit)
+       ===================================================================== */
+    .env.draggable {
+      pointer-events: auto;
+      cursor: grab;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .env.dragging {
+      cursor: grabbing;
+    }
+
+    /* Sprechblase unten auf dem roten Umschlag (über dem Umschlag, ohne Sprechblasen-Spitze) */
+    .speech-stack.on-envelope {
+      z-index: 70;
+      bottom: calc(max(4svh, 16px) + 4vw);
+    }
+
+    .speech-stack.on-envelope .speech-bubble::after {
+      display: none;
+    }
+
+    /* Vorhang fast geschlossen: schmaler Spalt in der Mitte, durch den die Katze gerade so zu sehen ist */
+    .curtain-container.ajar .curtain-left {
+      transform: translateX(calc(-1 * var(--ajar-gap))) scaleX(1);
+    }
+
+    .curtain-container.ajar .curtain-right {
+      transform: translateX(var(--ajar-gap)) scaleX(1);
+    }
   </style>
 </head>
 <body>
@@ -1191,12 +1229,18 @@
     - audio_2.mp3: Zweite Sprachnachricht, sobald alle 3 Laternen-Stufen eingeschaltet sind
     - audio_3.mp3: Dritte Sprachnachricht (Memory-Erklärung), nachdem die Katze zwischen den Karten hervorgelugt hat
     - audio_4.mp3: Vierte Sprachnachricht (Lob nach dem Memory, vor dem Niesen)
+    - audio_5.mp3: Fünfte Sprachnachricht (Umschlag zur Seite schieben), startet nach der herausgezogenen Einladung
+    - audio_6.mp3: Sechste Sprachnachricht (Danke), startet nach dem Verschwinden des Umschlags
+    - audio_7.mp3: Siebte Sprachnachricht (STOPP, Namen eintragen), startet, sobald der Vorhang fast geschlossen ist
     - hatschi.mp3 (Niesen), knall.mp3, richtig.mp3, falsch.mp3: Soundeffekte (werden über Web Audio geladen)
   -->
   <audio id="catAudio1" src="audio_1.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio2" src="audio_2.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio3" src="audio_3.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio4" src="audio_4.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio5" src="audio_5.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio6" src="audio_6.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio7" src="audio_7.mp3" preload="auto" playsinline></audio>
 
   <script>
     const stage = document.getElementById('stage');
@@ -1215,6 +1259,9 @@
     const catAudio2 = document.getElementById('catAudio2');
     const catAudio3 = document.getElementById('catAudio3');
     const catAudio4 = document.getElementById('catAudio4');
+    const catAudio5 = document.getElementById('catAudio5');
+    const catAudio6 = document.getElementById('catAudio6');
+    const catAudio7 = document.getElementById('catAudio7');
 
     // Konfiguration für Winkekatze:
     // Ist winkekatze.gif vorhanden, wird direkt das GIF genutzt,
@@ -1306,6 +1353,39 @@
     const ENVELOPE_PAPER_MS = 1900;                // Dauer des Herausgleitens des Papiers
     const PAPER_END_BOTTOM = 0.46;                 // Unterkante des Papiers am Ende (Anteil der Umschlaghöhe, von oben)
     const PAPER_START_TOP = 0.40;                  // Oberkante des Papiers im Umschlag (versteckt hinter der Tasche)
+
+    // ---------------------------------------------------------------------
+    // NEU: Ablauf nach der herausgezogenen Einladung
+    // Hinweis: Anreden (Du, Dich, Dir, Dein, Deine, Euch, Euer) immer am Wortanfang großschreiben.
+    // ---------------------------------------------------------------------
+    const SLIDE_SPEECH_TEXT = 'Falls Du Dirks Einladung schon fertig gelesen hast, schiebe den Umschlag doch nochmal zur Seite, damit wir uns wieder sehen können.';   // audio_5.mp3
+    const SLIDE_SPEECH_FALLBACK_S = 9;             // Textdauer, falls audio_5.mp3 nicht abgespielt werden kann
+    const SLIDE_START_DELAY_MS = 1200;             // Pause nach dem Herausgleiten der Einladung, dann startet audio_5.mp3
+    const SLIDE_SPEECH_HOLD_MS = 500;              // So lange bleibt die fertige Sprechblase nach dem Ende von audio_5.mp3 stehen, bevor das Schieben freigegeben wird
+
+    // Verschieben des Umschlags: automatisches Ausgleiten am Rand
+    const SLIDE_EDGE_X_MIN = 0.22;                 // Mittelpunkt des Objekts links von 22 % der Breite  -> Ausgleiten
+    const SLIDE_EDGE_X_MAX = 0.78;                 // ... rechts von 78 % der Breite                      -> Ausgleiten
+    const SLIDE_EDGE_Y_MIN = 0.20;                 // ... oberhalb von 20 % der Höhe                      -> Ausgleiten
+    const SLIDE_EDGE_Y_MAX = 0.80;                 // ... unterhalb von 80 % der Höhe                     -> Ausgleiten
+    const SLIDE_FLING_SPEED = 0.9;                 // Loslass-Geschwindigkeit (px/ms), ab der das Objekt auch ohne Randkontakt wegfliegt
+    const SLIDE_GLIDE_START_SPEED = 0.6;           // Startgeschwindigkeit beim Ausgleiten (px/ms)
+    const SLIDE_GLIDE_ACCEL = 0.0022;              // Beschleunigung beim Ausgleiten (px/ms pro ms)
+    const SLIDE_GLIDE_MAX_MS = 5000;               // Sicherheits-Limit für das Ausgleiten
+
+    const SLIDE_AFTER_GONE_MS = 1200;              // Pause (mindestens 1 s) nach dem Verschwinden des Umschlags, dann audio_6.mp3
+    const THANKS_SPEECH_TEXT = 'Super. Danke Dir! Viel mehr habe ich auch gar nicht zu sagen. Ich bin mir sicher, Dirk ist total aus dem Häuschen, wenn Du dabei bist!';   // audio_6.mp3
+    const THANKS_SPEECH_FALLBACK_S = 10;           // Textdauer, falls audio_6.mp3 nicht abgespielt werden kann
+    const THANKS_SPEECH_HOLD_MS = 900;             // So lange bleibt die fertige Sprechblase nach dem Ende von audio_6.mp3 stehen
+
+    const CURTAIN_OPEN_MS = 2300;                  // Vorhang öffnet sich wieder komplett (Transition 2,1 s)
+    const CURTAIN_CAT_BEHIND_PAUSE_MS = 700;       // Katze geht hinter den Vorhang (z-index 18), kurze Pause vor dem Schließen
+    const CURTAIN_AJAR_MS = 2300;                  // Vorhang schließt sich fast (Transition 2,1 s); Spaltbreite: --ajar-gap im CSS (.curtain-container)
+    const CURTAIN_BEFORE_AUDIO7_MS = 600;          // Pause nach dem Schließen, dann startet audio_7.mp3
+
+    const STOP_SPEECH_TEXT = 'STOPP, ich habe etwas vergessen. Trage doch bitte oben Deinen oder Euren Namen ein und sage noch kurz zu oder ab.';   // audio_7.mp3
+    const STOP_SPEECH_FALLBACK_S = 9;              // Textdauer, falls audio_7.mp3 nicht abgespielt werden kann
+    const STOP_SPEECH_HOLD_MS = 600;               // Haltezeit der fertigen Sprechblase (sie bleibt danach stehen)
 
     // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
     const LANTERNS = [
@@ -2418,6 +2498,14 @@
     let envelopeGeom = null;     // { vw, vh, envW, envH, E, S, C, R, r0, phi0, sweep }
     let inviteRatio = 0;         // Breite / Höhe von einladung.jpg, sobald geladen
 
+    // NEU: Status für das Verschieben des Umschlags
+    let envDraggable = false;    // Umschlag darf gerade verschoben werden
+    let envDragStarted = false;  // Nutzer hat den Umschlag bereits angefasst (Resize setzt Position dann nicht mehr zurück)
+    let envGliding = false;      // Umschlag gleitet gerade automatisch aus dem Bild
+    let envGone = false;         // Umschlag ist komplett verschwunden
+    let envPos = null;           // aktuelle Position (linke obere Ecke, px) als { x, y }
+    let envDrag = null;          // laufende Geste: { id, lastX, lastY, startX, startY, samples }
+
     function animateEl(el, from, to, duration, easing, delay) {
       if (typeof el.animate === 'function') {
         const anim = el.animate(
@@ -2619,7 +2707,8 @@
 
     // Sprechblase + Audio, Text synchron zum Audio (mit Satzzeichen-Pausen gewichtet).
     // Gibt erst Ruhe, wenn das Audio zu Ende ist und die fertige Blase kurz stehen geblieben und wieder verschwunden ist.
-    function runCatSpeech(audioEl, text, fallbackDurationS, holdMs) {
+    // keepVisible = true: Die fertige Sprechblase bleibt danach stehen (wird nicht ausgeblendet).
+    function runCatSpeech(audioEl, text, fallbackDurationS, holdMs, keepVisible) {
       return new Promise((resolve) => {
         resetBubblesForNewSequence();
 
@@ -2694,8 +2783,10 @@
             requestAnimationFrame(frame);
           } else {
             speechBubble1.textContent = text;
+            speechBubble1.classList.remove('hidden-away');
+            speechBubble1.classList.add('visible');
             window.setTimeout(() => {
-              hideBothBubbles();
+              if (!keepVisible) hideBothBubbles();
               resolve();
             }, holdMs);
           }
@@ -2745,14 +2836,250 @@
       window.setTimeout(runMemoryFinale, FINALE_START_DELAY_MS);
     });
 
+    // =====================================================================
+    // NEU: Umschlag (samt Lasche und Einladung) als eine Einheit verschieben.
+    // Bewegt wird immer das Eltern-Element #envelope: Lasche, Tasche und Papier sind Kinder davon,
+    // deshalb bleibt alles zusammen – egal, wo man anfasst.
+    // =====================================================================
+    function applyEnvPos() {
+      envelope.style.transform = `translate3d(${envPos.x.toFixed(2)}px, ${envPos.y.toFixed(2)}px, 0)`;
+    }
+
+    // Umschließendes Rechteck von Umschlag, Lasche und Einladung
+    function getEnvObjectRect() {
+      const rects = [envelope, envPaper, envFlap].map((el) => el.getBoundingClientRect());
+      return {
+        left: Math.min(...rects.map((r) => r.left)),
+        right: Math.max(...rects.map((r) => r.right)),
+        top: Math.min(...rects.map((r) => r.top)),
+        bottom: Math.max(...rects.map((r) => r.bottom))
+      };
+    }
+
+    // Ist das Objekt so weit zum Rand gewandert, dass es von selbst weitergleiten soll?
+    function isEnvNearEdge() {
+      const r = getEnvObjectRect();
+      const cx = (r.left + r.right) / 2;
+      const cy = (r.top + r.bottom) / 2;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      return cx < vw * SLIDE_EDGE_X_MIN || cx > vw * SLIDE_EDGE_X_MAX ||
+             cy < vh * SLIDE_EDGE_Y_MIN || cy > vh * SLIDE_EDGE_Y_MAX;
+    }
+
+    function isEnvCompletelyOffscreen() {
+      const r = getEnvObjectRect();
+      return r.right < 0 || r.left > window.innerWidth || r.bottom < 0 || r.top > window.innerHeight;
+    }
+
+    // Bewegungsrichtung: bevorzugt aus den letzten ~150 ms der Geste, sonst aus der gesamten Geste,
+    // zuletzt vom Bildschirmmittelpunkt nach außen.
+    function getEnvDragDirection() {
+      let dx = 0;
+      let dy = 0;
+      if (envDrag) {
+        const s = envDrag.samples;
+        if (s.length >= 2) {
+          dx = s[s.length - 1].x - s[0].x;
+          dy = s[s.length - 1].y - s[0].y;
+        }
+        if (Math.hypot(dx, dy) < 4) {
+          dx = envDrag.lastX - envDrag.startX;
+          dy = envDrag.lastY - envDrag.startY;
+        }
+      }
+      if (Math.hypot(dx, dy) < 4) {
+        const r = getEnvObjectRect();
+        dx = (r.left + r.right) / 2 - window.innerWidth / 2;
+        dy = (r.top + r.bottom) / 2 - window.innerHeight / 2;
+      }
+      let len = Math.hypot(dx, dy);
+      if (len < 1) {
+        dx = 1;
+        dy = 0;
+        len = 1;
+      }
+      return { x: dx / len, y: dy / len };
+    }
+
+    function getEnvDragSpeed() {
+      if (!envDrag || envDrag.samples.length < 2) return 0;
+      const s = envDrag.samples;
+      const dt = Math.max(1, s[s.length - 1].t - s[0].t);
+      return Math.hypot(s[s.length - 1].x - s[0].x, s[s.length - 1].y - s[0].y) / dt;
+    }
+
+    function finishEnvelopeGone() {
+      envGone = true;
+      envGliding = false;
+      envelope.classList.remove('show', 'draggable', 'dragging');
+      envelope.style.display = 'none';
+      window.dispatchEvent(new CustomEvent('envelope-gone'));
+    }
+
+    // Automatisches Ausgleiten in Bewegungsrichtung, bis alles komplett aus dem Bild ist
+    function startEnvelopeGlide() {
+      if (envGliding || envGone) return;
+      envGliding = true;
+      envDraggable = false;
+      envelope.classList.remove('draggable', 'dragging');
+
+      const dir = getEnvDragDirection();
+      envDrag = null;
+
+      const startTime = performance.now();
+      let last = startTime;
+
+      function frame(now) {
+        const dt = Math.min(48, now - last);
+        last = now;
+        const elapsed = now - startTime;
+        const speed = SLIDE_GLIDE_START_SPEED + SLIDE_GLIDE_ACCEL * elapsed;
+
+        envPos.x += dir.x * speed * dt;
+        envPos.y += dir.y * speed * dt;
+        applyEnvPos();
+
+        if (isEnvCompletelyOffscreen() || elapsed > SLIDE_GLIDE_MAX_MS) {
+          finishEnvelopeGone();
+        } else {
+          requestAnimationFrame(frame);
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    envelope.addEventListener('pointerdown', (event) => {
+      if (!envDraggable || envGliding || envGone || envDrag) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      envDragStarted = true;
+      envDrag = {
+        id: event.pointerId,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        startX: event.clientX,
+        startY: event.clientY,
+        samples: [{ x: event.clientX, y: event.clientY, t: performance.now() }]
+      };
+      try { envelope.setPointerCapture(event.pointerId); } catch (err) { /* ignorieren */ }
+      envelope.classList.add('dragging');
+      hideBothBubbles();   // Sprechblase verschwindet, sobald der Umschlag angefasst wird
+    });
+
+    envelope.addEventListener('pointermove', (event) => {
+      if (!envDrag || event.pointerId !== envDrag.id || envGliding || envGone) return;
+      event.preventDefault();
+
+      envPos.x += event.clientX - envDrag.lastX;
+      envPos.y += event.clientY - envDrag.lastY;
+      envDrag.lastX = event.clientX;
+      envDrag.lastY = event.clientY;
+      applyEnvPos();
+
+      const now = performance.now();
+      envDrag.samples.push({ x: event.clientX, y: event.clientY, t: now });
+      while (envDrag.samples.length > 2 && now - envDrag.samples[0].t > 150) {
+        envDrag.samples.shift();
+      }
+
+      if (isEnvNearEdge()) {
+        startEnvelopeGlide();
+      }
+    });
+
+    function endEnvelopeDrag(event, cancelled) {
+      if (!envDrag || event.pointerId !== envDrag.id || envGliding || envGone) return;
+      const fast = !cancelled && getEnvDragSpeed() >= SLIDE_FLING_SPEED;
+      if (fast) {
+        startEnvelopeGlide();   // schneller Wisch: Umschlag fliegt auch ohne Randkontakt weiter
+        return;
+      }
+      envDrag = null;
+      envelope.classList.remove('dragging');
+    }
+
+    envelope.addEventListener('pointerup', (event) => endEnvelopeDrag(event, false));
+    envelope.addEventListener('pointercancel', (event) => endEnvelopeDrag(event, true));
+
+    // Schaltet das Verschieben frei (Startposition = aktuelle Endposition des gelandeten Umschlags)
+    function enableEnvelopeDrag() {
+      const geom = envelopeGeom || computeEnvelopeGeometry();
+      envPos = { x: geom.E.x - geom.envW / 2, y: geom.E.y - geom.envH / 2 };
+      applyEnvPos();
+      envDraggable = true;
+      envelope.classList.add('draggable');
+    }
+
+    // =====================================================================
+    // NEU: Ablauf nach der herausgezogenen Einladung
+    //   1) audio_5 + Sprechblase auf dem Umschlag, Nutzer schiebt den Umschlag weg
+    //   2) mindestens 1 s Pause, audio_6 + Sprechblase
+    //   3) Vorhang öffnet sich wieder, Katze geht hinter den Vorhang, Vorhang schließt sich fast (Katze bleibt gerade so sichtbar)
+    //   4) audio_7 + Sprechblase (bleibt stehen)
+    // =====================================================================
+    async function runCurtainAjarWithCatBehind() {
+      // Vorhang fährt wieder auf, das Hintergrundbild kommt dahinter wieder zum Vorschein
+      curtainContainer.classList.remove('closing');
+      curtainContainer.classList.add('visible', 'open');
+      invitationStage.classList.remove('bg-hidden');
+      await wait(CURTAIN_OPEN_MS);
+
+      // Katze hinter den Vorhang legen (z-index 18 < 28); sie steht jetzt wieder im Layer zwischen Hintergrund und Vorhang
+      manekiWrap.classList.remove('in-front-of-curtain');
+      await wait(CURTAIN_CAT_BEHIND_PAUSE_MS);
+
+      // Vorhang schließt sich langsam von beiden Seiten, bleibt aber mit schmalem Spalt in der Mitte stehen
+      curtainContainer.classList.remove('open');
+      curtainContainer.classList.add('ajar');
+      await wait(CURTAIN_AJAR_MS);
+    }
+
+    async function runAfterInvitationSequence() {
+      // 1) Sprechblase unten auf dem roten Umschlag + audio_5.mp3
+      await wait(SLIDE_START_DELAY_MS);
+      speechStack.classList.add('on-envelope');
+      await runCatSpeech(catAudio5, SLIDE_SPEECH_TEXT, SLIDE_SPEECH_FALLBACK_S, SLIDE_SPEECH_HOLD_MS, true);
+
+      // Auf das Verschieben warten (Sprechblase bleibt stehen, bis der Umschlag angefasst wird)
+      const gone = new Promise((resolve) => {
+        window.addEventListener('envelope-gone', resolve, { once: true });
+      });
+      enableEnvelopeDrag();
+      await gone;
+
+      // 2) Mindestens 1 Sekunde Pause, dann audio_6.mp3 + Sprechblase über der Katze
+      hideBothBubbles();
+      speechStack.classList.remove('on-envelope');
+      await wait(SLIDE_AFTER_GONE_MS);
+      await runCatSpeech(catAudio6, THANKS_SPEECH_TEXT, THANKS_SPEECH_FALLBACK_S, THANKS_SPEECH_HOLD_MS);
+
+      // 3) Vorhang schließt sich teilweise
+      await runCurtainAjarWithCatBehind();
+
+      // 4) Letzte Sprechblase + audio_7.mp3 (bleibt stehen)
+      await wait(CURTAIN_BEFORE_AUDIO7_MS);
+      await runCatSpeech(catAudio7, STOP_SPEECH_TEXT, STOP_SPEECH_FALLBACK_S, STOP_SPEECH_HOLD_MS, true);
+      window.dispatchEvent(new CustomEvent('stop-speech-done'));
+    }
+
+    window.addEventListener('invitation-shown', () => {
+      runAfterInvitationSequence();
+    }, { once: true });
+
     // Bei Drehung/Größenänderung des Fensters die Endposition des gelandeten Umschlags neu berechnen
     window.addEventListener('resize', () => {
-      if (!envelopeLanded) return;
+      if (!envelopeLanded || envDragStarted || envGliding || envGone) return;
       const geom = computeEnvelopeGeometry();
       envelopeGeom = geom;
       applyEnvelopeSize(geom);
       envelope.style.transform =
         `translate3d(${(geom.E.x - geom.envW / 2).toFixed(2)}px, ${(geom.E.y - geom.envH / 2).toFixed(2)}px, 0)`;
+      if (envPos) {
+        envPos = { x: geom.E.x - geom.envW / 2, y: geom.E.y - geom.envH / 2 };
+      }
     });
 
     // --- Winkekatze: GIF-Prüfung mit automatischem Fallback auf freigestelltes winkekatze.jpg + Arm-Animation ---
@@ -2960,6 +3287,9 @@
       unlockAudio(catAudio2);
       unlockAudio(catAudio3);
       unlockAudio(catAudio4);
+      unlockAudio(catAudio5);
+      unlockAudio(catAudio6);
+      unlockAudio(catAudio7);
       unlockSfx();   // Web Audio starten + Notlösungs-Audios freischalten (knall, richtig, falsch, hatschi)
 
       window.setTimeout(() => {
