@@ -1118,12 +1118,149 @@
     }
 
     /* Vorhang fast geschlossen: schmaler Spalt in der Mitte, durch den die Katze gerade so zu sehen ist */
+    /* Die exakten Werte (--ajar-left / --ajar-right in px) setzt JS anhand von getBoundingClientRect() der Katze */
     .curtain-container.ajar .curtain-left {
-      transform: translateX(calc(-1 * var(--ajar-gap))) scaleX(1);
+      transform: translateX(var(--ajar-left, calc(-1 * var(--ajar-gap)))) scaleX(1);
     }
 
     .curtain-container.ajar .curtain-right {
-      transform: translateX(var(--ajar-gap)) scaleX(1);
+      transform: translateX(var(--ajar-right, var(--ajar-gap))) scaleX(1);
+    }
+
+    /* =====================================================================
+       NEU: RSVP-Formular oben (z-index 80: über Vorhang, Katze und Sprechblasen)
+       Liegt unterhalb der goldenen Vorhangblende, damit nichts verdeckt wird.
+       ===================================================================== */
+    .rsvp {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + clamp(38px, 6.5svh, 58px) + 22px);
+      left: 50%;
+      width: min(92vw, 380px);
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 2px solid var(--gold);
+      background: linear-gradient(160deg, #fffaf0 0%, #f6f4ec 55%, #eadcb4 100%);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 244, 200, 0.7);
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -16px);
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.6s;
+      touch-action: manipulation;
+    }
+
+    .rsvp.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, 0);
+    }
+
+    .rsvp-input {
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 16px;
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      background: #fffdf8;
+      color: var(--ink);
+      font: 600 1.05rem/1.2 Georgia, "Times New Roman", serif;   /* mind. 16 px: kein Auto-Zoom auf dem iPhone */
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .rsvp-input::placeholder {
+      color: rgba(112, 72, 22, 0.6);
+      font-weight: 400;
+    }
+
+    .rsvp-input:focus {
+      box-shadow: 0 0 0 3px rgba(242, 223, 156, 0.85);
+    }
+
+    .rsvp-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .rsvp-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      min-height: 52px;
+      padding: 10px 8px;
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      font: 600 clamp(0.9rem, 3.8vw, 1.02rem)/1.2 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, opacity 0.3s ease;
+    }
+
+    .rsvp-btn:active {
+      transform: scale(0.97);
+    }
+
+    .rsvp-btn.yes {
+      color: #fffdf6;
+      border-color: #8d672b;
+      background: linear-gradient(130deg, #7b541c 0%, #c09a4c 48%, #8c6326 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .rsvp-btn.no {
+      color: var(--gold-dark);
+      background: #fffdf8;
+    }
+
+    .rsvp-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .rsvp-hint {
+      margin: 0;
+      min-height: 1.2em;
+      text-align: center;
+      font: 600 0.88rem/1.3 Georgia, "Times New Roman", serif;
+      color: #8f1422;
+    }
+
+    .rsvp-hint:empty {
+      display: none;
+    }
+
+    /* Kurze Bestätigung nach dem Absenden */
+    .rsvp-thanks {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + clamp(38px, 6.5svh, 58px) + 22px);
+      left: 50%;
+      width: min(92vw, 380px);
+      z-index: 80;
+      padding: 16px 18px;
+      border-radius: 20px;
+      border: 2px solid var(--gold);
+      background: linear-gradient(160deg, #fffaf0 0%, #f6f4ec 55%, #eadcb4 100%);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 244, 200, 0.7);
+      color: var(--gold-dark);
+      text-align: center;
+      font: 700 1.02rem/1.35 Georgia, "Times New Roman", serif;
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -10px);
+      transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s;
+      pointer-events: none;
+    }
+
+    .rsvp-thanks.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, 0);
     }
   </style>
 </head>
@@ -1223,6 +1360,18 @@
     </div>
   </div>
 
+  <!-- RSVP-Formular (erscheint oben, sobald die Katze "STOPP ..." gesagt hat) -->
+  <div class="rsvp" id="rsvp" aria-label="Rückmeldung">
+    <input class="rsvp-input" id="rsvpName" type="text" name="name" placeholder="Dein/Eure Namen" aria-label="Dein/Eure Namen"
+           autocomplete="name" autocapitalize="words" enterkeyhint="done" maxlength="80">
+    <div class="rsvp-buttons">
+      <button class="rsvp-btn yes" id="rsvpYes" type="button" data-status="Zusage">Dabei</button>
+      <button class="rsvp-btn no" id="rsvpNo" type="button" data-status="Absage">Leider nicht dabei</button>
+    </div>
+    <p class="rsvp-hint" id="rsvpHint" role="status" aria-live="polite"></p>
+  </div>
+  <div class="rsvp-thanks" id="rsvpThanks" role="status" aria-live="polite">Vielen Dank! Deine Rückmeldung wurde gespeichert.</div>
+
   <!--
     Audio-Dateien der Winkekatze:
     - audio_1.mp3: Erste Sprachnachricht nach dem Öffnen des Vorhangs
@@ -1231,7 +1380,8 @@
     - audio_4.mp3: Vierte Sprachnachricht (Lob nach dem Memory, vor dem Niesen)
     - audio_5.mp3: Fünfte Sprachnachricht (Umschlag zur Seite schieben), startet nach der herausgezogenen Einladung
     - audio_6.mp3: Sechste Sprachnachricht (Danke), startet nach dem Verschwinden des Umschlags
-    - audio_7.mp3: Siebte Sprachnachricht (STOPP, Namen eintragen), startet, sobald der Vorhang fast geschlossen ist
+    - audio_7.mp3: Siebte Sprachnachricht (STOPP, Namen eintragen), startet, sobald der Vorhang die Katze erreicht
+    - audio_8.mp3: Achte Sprachnachricht (Verabschiedung), danach schließt sich der Vorhang komplett
     - hatschi.mp3 (Niesen), knall.mp3, richtig.mp3, falsch.mp3: Soundeffekte (werden über Web Audio geladen)
   -->
   <audio id="catAudio1" src="audio_1.mp3" preload="auto" playsinline></audio>
@@ -1241,6 +1391,7 @@
   <audio id="catAudio5" src="audio_5.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio6" src="audio_6.mp3" preload="auto" playsinline></audio>
   <audio id="catAudio7" src="audio_7.mp3" preload="auto" playsinline></audio>
+  <audio id="catAudio8" src="audio_8.mp3" preload="auto" playsinline></audio>
 
   <script>
     const stage = document.getElementById('stage');
@@ -1262,6 +1413,15 @@
     const catAudio5 = document.getElementById('catAudio5');
     const catAudio6 = document.getElementById('catAudio6');
     const catAudio7 = document.getElementById('catAudio7');
+    const catAudio8 = document.getElementById('catAudio8');
+    const curtainLeft = curtainContainer.querySelector('.curtain-left');
+    const curtainRight = curtainContainer.querySelector('.curtain-right');
+    const rsvpBox = document.getElementById('rsvp');
+    const rsvpName = document.getElementById('rsvpName');
+    const rsvpYes = document.getElementById('rsvpYes');
+    const rsvpNo = document.getElementById('rsvpNo');
+    const rsvpHint = document.getElementById('rsvpHint');
+    const rsvpThanks = document.getElementById('rsvpThanks');
 
     // Konfiguration für Winkekatze:
     // Ist winkekatze.gif vorhanden, wird direkt das GIF genutzt,
@@ -1360,7 +1520,7 @@
     // ---------------------------------------------------------------------
     const SLIDE_SPEECH_TEXT = 'Falls Du Dirks Einladung schon fertig gelesen hast, schiebe den Umschlag doch nochmal zur Seite, damit wir uns wieder sehen können.';   // audio_5.mp3
     const SLIDE_SPEECH_FALLBACK_S = 9;             // Textdauer, falls audio_5.mp3 nicht abgespielt werden kann
-    const SLIDE_START_DELAY_MS = 1200;             // Pause nach dem Herausgleiten der Einladung, dann startet audio_5.mp3
+    const SLIDE_START_DELAY_MS = 3700;             // Lesezeit: Pause nach dem Herausgleiten der Einladung, dann startet audio_5.mp3 (vorher 1200 ms)
     const SLIDE_SPEECH_HOLD_MS = 500;              // So lange bleibt die fertige Sprechblase nach dem Ende von audio_5.mp3 stehen, bevor das Schieben freigegeben wird
 
     // Verschieben des Umschlags: automatisches Ausgleiten am Rand
@@ -1379,13 +1539,29 @@
     const THANKS_SPEECH_HOLD_MS = 900;             // So lange bleibt die fertige Sprechblase nach dem Ende von audio_6.mp3 stehen
 
     const CURTAIN_OPEN_MS = 2300;                  // Vorhang öffnet sich wieder komplett (Transition 2,1 s)
-    const CURTAIN_CAT_BEHIND_PAUSE_MS = 700;       // Katze geht hinter den Vorhang (z-index 18), kurze Pause vor dem Schließen
-    const CURTAIN_AJAR_MS = 2300;                  // Vorhang schließt sich fast (Transition 2,1 s); Spaltbreite: --ajar-gap im CSS (.curtain-container)
-    const CURTAIN_BEFORE_AUDIO7_MS = 600;          // Pause nach dem Schließen, dann startet audio_7.mp3
+    const CURTAIN_CAT_BEHIND_PAUSE_MS = 400;       // Katze geht hinter den Vorhang (z-index 18), kurze Pause vor dem Schließen
+    const CURTAIN_AJAR_MS = 2300;                  // Dauer des Schließens (Transition 2,1 s)
+    const CURTAIN_CAT_VISIBLE_RATIO = 0.4;         // Anteil der Katzenbreite (aus getBoundingClientRect), der im Spalt sichtbar bleibt (kleiner = Katze noch weniger zu sehen)
+    const CURTAIN_CONTACT_TIMEOUT_MS = 3500;       // Sicherheit: audio_7.mp3 startet spätestens nach dieser Zeit, auch wenn der Kontakt nicht erkannt wird
 
     const STOP_SPEECH_TEXT = 'STOPP, ich habe etwas vergessen. Trage doch bitte oben Deinen oder Euren Namen ein und sage noch kurz zu oder ab.';   // audio_7.mp3
     const STOP_SPEECH_FALLBACK_S = 9;              // Textdauer, falls audio_7.mp3 nicht abgespielt werden kann
     const STOP_SPEECH_HOLD_MS = 600;               // Haltezeit der fertigen Sprechblase (sie bleibt danach stehen)
+
+    // NEU: RSVP-Formular (Formspark) und Verabschiedung
+    // Formspark: Die Daten gehen per POST (JSON) an https://submit-form.com/<FORM-ID>.
+    // >>> Hier die eigene Formspark-Form-ID eintragen (Teil der Form-URL nach "https://submit-form.com/"). <<<
+    // Solange das Feld leer ist, wird NICHTS gesendet (Testmodus: der Ablauf läuft trotzdem weiter, Hinweis in der Konsole).
+    const FORMSPARK_FORM_ID = '';
+    const FORMSPARK_BASE_URL = 'https://submit-form.com';
+    const RSVP_TIMEOUT_MS = 10000;                 // Abbruch der Anfrage nach 10 s
+    const RSVP_FORM_DELAY_MS = 600;                // Pause nach dem letzten Wort von audio_7, dann erscheint das Formular
+    const RSVP_THANKS_MS = 2600;                   // So lange bleibt die Bestätigung oben sichtbar
+    const BYE_DELAY_MS = 1000;                     // Pause (1 s) nach dem Ausblenden von Eingabefeld und Buttons, dann audio_8.mp3
+    const BYE_SPEECH_TEXT = "Perfekt, das war's von mir. Tschüssi und bis bald.";   // audio_8.mp3
+    const BYE_SPEECH_FALLBACK_S = 5;               // Textdauer, falls audio_8.mp3 nicht abgespielt werden kann
+    const BYE_SPEECH_HOLD_MS = 250;                // Haltezeit der fertigen Sprechblase, dann schließt sich der Vorhang komplett
+    const CURTAIN_FINAL_CLOSE_MS = 2300;           // Dauer des endgültigen Schließens (Transition 2,1 s)
 
     // Laternen-Positionen in Prozent (%) relativ zum Bild (Hochformat)
     const LANTERNS = [
@@ -2810,6 +2986,13 @@
       memoryCells.forEach((c) => { c.el.style.visibility = 'hidden'; });
       memoryBoard.classList.remove('show');
 
+      // NEU: Zuerst öffnet sich der rote Vorhang wieder, dahinter sind hintergrund.jpg und die winkende Katze zu sehen
+      curtainContainer.classList.remove('closing');
+      curtainContainer.classList.add('visible', 'open');
+      invitationStage.classList.remove('bg-hidden');
+      await wait(CURTAIN_OPEN_MS);
+      manekiWrap.classList.remove('in-front-of-curtain');   // Katze steht jetzt wieder zwischen Hintergrundbild und Vorhang
+
       // Mindestens 1 Sekunde Pause, dann lobt die Katze (audio_4.mp3 + Sprechblase), danach wieder mindestens 1 Sekunde Pause
       await wait(FINALE_BEFORE_AUDIO4_MS);
       await runCatSpeech(catAudio4, FINALE_SPEECH_TEXT, FINALE_SPEECH_FALLBACK_S, FINALE_SPEECH_HOLD_MS);
@@ -3020,25 +3203,45 @@
     //   3) Vorhang öffnet sich wieder, Katze geht hinter den Vorhang, Vorhang schließt sich fast (Katze bleibt gerade so sichtbar)
     //   4) audio_7 + Sprechblase (bleibt stehen)
     // =====================================================================
-    async function runCurtainAjarWithCatBehind() {
-      // Vorhang fährt wieder auf, das Hintergrundbild kommt dahinter wieder zum Vorschein
-      curtainContainer.classList.remove('closing');
-      curtainContainer.classList.add('visible', 'open');
-      invitationStage.classList.remove('bg-hidden');
-      await wait(CURTAIN_OPEN_MS);
+    // Vorhang schließt sich exakt an der Katze: Die Spaltbreite wird aus getBoundingClientRect() der Katze berechnet.
+    // Der Spalt ist auf die Katzenmitte zentriert und lässt nur CURTAIN_CAT_VISIBLE_RATIO der Katzenbreite frei.
+    // Gibt zwei Promises zurück: "contact" (Vorhang berührt die Katze) und "done" (Vorhang steht still).
+    function closeCurtainOnCat() {
+      const cat = manekiWrap.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const catCenter = cat.left + cat.width / 2;
+      const halfGap = (cat.width * CURTAIN_CAT_VISIBLE_RATIO) / 2;
 
-      // Katze hinter den Vorhang legen (z-index 18 < 28); sie steht jetzt wieder im Layer zwischen Hintergrund und Vorhang
-      manekiWrap.classList.remove('in-front-of-curtain');
-      await wait(CURTAIN_CAT_BEHIND_PAUSE_MS);
+      // Geschlossen: linke Hälfte endet bei 51,5 vw, rechte beginnt bei 48,5 vw (leichte Überlappung in der Mitte)
+      const leftShift = (catCenter - halfGap) - vw * 0.515;    // negativ: nach links
+      const rightShift = (catCenter + halfGap) - vw * 0.485;   // positiv: nach rechts
+      curtainContainer.style.setProperty('--ajar-left', leftShift.toFixed(2) + 'px');
+      curtainContainer.style.setProperty('--ajar-right', rightShift.toFixed(2) + 'px');
 
-      // Vorhang schließt sich langsam von beiden Seiten, bleibt aber mit schmalem Spalt in der Mitte stehen
-      curtainContainer.classList.remove('open');
-      curtainContainer.classList.add('ajar');
-      await wait(CURTAIN_AJAR_MS);
+      curtainContainer.classList.remove('closing', 'open');
+      curtainContainer.classList.add('visible', 'ajar');
+
+      // Kontakt: sobald die linke Vorhanghälfte den linken Katzenrand oder die rechte den rechten Katzenrand erreicht
+      const contact = new Promise((resolve) => {
+        const t0 = performance.now();
+        function check() {
+          const l = curtainLeft.getBoundingClientRect();
+          const r = curtainRight.getBoundingClientRect();
+          if (l.right >= cat.left || r.left <= cat.right || performance.now() - t0 > CURTAIN_CONTACT_TIMEOUT_MS) {
+            resolve();
+          } else {
+            requestAnimationFrame(check);
+          }
+        }
+        requestAnimationFrame(check);
+      });
+
+      const done = wait(CURTAIN_AJAR_MS);
+      return { contact, done };
     }
 
     async function runAfterInvitationSequence() {
-      // 1) Sprechblase unten auf dem roten Umschlag + audio_5.mp3
+      // 1) Sprechblase unten auf dem roten Umschlag + audio_5.mp3 (nach längerer Lesezeit)
       await wait(SLIDE_START_DELAY_MS);
       speechStack.classList.add('on-envelope');
       await runCatSpeech(catAudio5, SLIDE_SPEECH_TEXT, SLIDE_SPEECH_FALLBACK_S, SLIDE_SPEECH_HOLD_MS, true);
@@ -3056,14 +3259,127 @@
       await wait(SLIDE_AFTER_GONE_MS);
       await runCatSpeech(catAudio6, THANKS_SPEECH_TEXT, THANKS_SPEECH_FALLBACK_S, THANKS_SPEECH_HOLD_MS);
 
-      // 3) Vorhang schließt sich teilweise
-      await runCurtainAjarWithCatBehind();
+      // 3) Vorhang schließt sich an der Katze (der Vorhang ist seit dem Finale offen, die Katze steht dahinter)
+      await wait(CURTAIN_CAT_BEHIND_PAUSE_MS);
+      const closing = closeCurtainOnCat();
 
-      // 4) Letzte Sprechblase + audio_7.mp3 (bleibt stehen)
-      await wait(CURTAIN_BEFORE_AUDIO7_MS);
-      await runCatSpeech(catAudio7, STOP_SPEECH_TEXT, STOP_SPEECH_FALLBACK_S, STOP_SPEECH_HOLD_MS, true);
+      // 4) Sobald der Vorhang die Katze erreicht, sofort audio_7.mp3 + Sprechblase (der Vorhang fährt parallel zu Ende)
+      await closing.contact;
+      const stopSpeech = runCatSpeech(catAudio7, STOP_SPEECH_TEXT, STOP_SPEECH_FALLBACK_S, STOP_SPEECH_HOLD_MS, true);
+      await Promise.all([stopSpeech, closing.done]);
       window.dispatchEvent(new CustomEvent('stop-speech-done'));
+
+      // 5) RSVP-Formular oben einblenden und auf die Antwort warten
+      await wait(RSVP_FORM_DELAY_MS);
+      showRsvpForm();
+      await new Promise((resolve) => {
+        window.addEventListener('rsvp-done', resolve, { once: true });
+      });
+
+      // 6) 1 Sekunde nach dem Ausblenden von Eingabefeld und Buttons: Verabschiedung (audio_8.mp3)
+      await wait(BYE_DELAY_MS);
+      await runCatSpeech(catAudio8, BYE_SPEECH_TEXT, BYE_SPEECH_FALLBACK_S, BYE_SPEECH_HOLD_MS, true);
+
+      // 7) Nach dem Ende von audio_8.mp3 schließt sich der Vorhang komplett
+      hideBothBubbles();
+      curtainContainer.classList.remove('ajar', 'open');
+      curtainContainer.classList.add('visible', 'closing');
+      await wait(CURTAIN_FINAL_CLOSE_MS);
+      window.dispatchEvent(new CustomEvent('curtain-closed'));
     }
+
+    // =====================================================================
+    // NEU: RSVP-Formular (Name + Dabei / Leider nicht dabei) und Versand an Formspark
+    // =====================================================================
+    let rsvpSending = false;
+    let rsvpFinished = false;
+
+    function showRsvpForm() {
+      rsvpBox.setAttribute('aria-hidden', 'false');
+      rsvpBox.classList.add('visible');
+    }
+
+    function setRsvpHint(text) {
+      rsvpHint.textContent = text || '';
+    }
+
+    function setRsvpBusy(busy) {
+      rsvpSending = busy;
+      rsvpYes.disabled = busy;
+      rsvpNo.disabled = busy;
+      rsvpName.disabled = busy;
+    }
+
+    async function sendRsvp(name, status) {
+      if (!FORMSPARK_FORM_ID) {
+        // Testmodus: Form-ID fehlt, es wird nichts gesendet
+        console.warn('Formspark: FORMSPARK_FORM_ID ist leer, es wurde nichts gesendet.', { name, status });
+        return true;
+      }
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = controller ? window.setTimeout(() => controller.abort(), RSVP_TIMEOUT_MS) : null;
+      try {
+        const res = await fetch(`${FORMSPARK_BASE_URL}/${FORMSPARK_FORM_ID}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ name, status }),
+          signal: controller ? controller.signal : undefined
+        });
+        return res.ok;
+      } catch (err) {
+        return false;
+      } finally {
+        if (timer) window.clearTimeout(timer);
+      }
+    }
+
+    async function handleRsvp(status) {
+      if (rsvpSending || rsvpFinished) return;
+
+      const name = rsvpName.value.trim();
+      if (!name) {
+        setRsvpHint('Bitte trage zuerst Deinen Namen ein.');
+        rsvpName.focus();
+        return;
+      }
+
+      setRsvpHint('');
+      setRsvpBusy(true);
+      const ok = await sendRsvp(name, status);
+
+      if (!ok) {
+        setRsvpBusy(false);
+        setRsvpHint('Das hat leider nicht geklappt. Bitte versuche es gleich noch einmal.');
+        return;
+      }
+
+      rsvpFinished = true;
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();   // Tastatur auf dem Handy einklappen
+      }
+
+      // Eingabefeld und Buttons ausblenden, kurze Bestätigung oben anzeigen
+      rsvpBox.classList.remove('visible');
+      rsvpBox.setAttribute('aria-hidden', 'true');
+      hideBothBubbles();
+      rsvpThanks.classList.add('visible');
+      window.setTimeout(() => rsvpThanks.classList.remove('visible'), RSVP_THANKS_MS);
+
+      // Die 1-Sekunden-Pause vor audio_8.mp3 beginnt jetzt (Eingabefeld und Buttons sind weg)
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('rsvp-done'));
+      }, 650);   // = Dauer der Ausblend-Transition des Formulars
+    }
+
+    rsvpYes.addEventListener('click', () => handleRsvp('Zusage'));
+    rsvpNo.addEventListener('click', () => handleRsvp('Absage'));
+    rsvpName.addEventListener('input', () => setRsvpHint(''));
+    rsvpName.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        rsvpName.blur();
+      }
+    });
 
     window.addEventListener('invitation-shown', () => {
       runAfterInvitationSequence();
@@ -3290,6 +3606,7 @@
       unlockAudio(catAudio5);
       unlockAudio(catAudio6);
       unlockAudio(catAudio7);
+      unlockAudio(catAudio8);
       unlockSfx();   // Web Audio starten + Notlösungs-Audios freischalten (knall, richtig, falsch, hatschi)
 
       window.setTimeout(() => {
