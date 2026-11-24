@@ -1235,6 +1235,34 @@
       display: none;
     }
 
+    /* Kleiner Button "Bereits erledigt" unten mittig im Formular */
+    .rsvp-skip {
+      appearance: none;
+      -webkit-appearance: none;
+      align-self: center;
+      min-height: 38px;
+      padding: 6px 18px;
+      border: 1.5px solid var(--gold);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--gold-dark);
+      font: 600 0.85rem/1.2 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, opacity 0.3s ease;
+    }
+
+    .rsvp-skip:active {
+      transform: scale(0.97);
+    }
+
+    .rsvp-skip:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
     /* Kurze Bestätigung nach dem Absenden */
     .rsvp-thanks {
       position: fixed;
@@ -1261,6 +1289,104 @@
       opacity: 1;
       visibility: visible;
       transform: translate(-50%, 0);
+    }
+
+    /* =====================================================================
+       NEU: Abspann auf dem dauerhaft geschlossenen Vorhang (z-index 90: über allem)
+       ===================================================================== */
+    .final {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100svh;
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding:
+        calc(env(safe-area-inset-top, 0px) + clamp(38px, 6.5svh, 58px) + 24px)
+        20px
+        max(18px, env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      text-align: center;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 1.4s ease, visibility 1.4s;
+    }
+
+    .final.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .final-main {
+      flex: 1 1 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+    }
+
+    .credits {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .credit-line {
+      margin: 0;
+      font: 400 clamp(1.02rem, 4.6vw, 1.22rem)/1.35 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.03em;
+      color: var(--gold-light);
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .credit-line .label {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .final-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      width: min(80vw, 300px);
+      min-height: 52px;
+      padding: 10px 18px;
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      background: #fffdf8;
+      color: var(--gold-dark);
+      font: 600 1.02rem/1.2 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease;
+    }
+
+    .final-btn:active {
+      transform: scale(0.97);
+    }
+
+    .final-legal {
+      flex: 0 0 auto;
+      max-width: 340px;
+      color: #ffffff;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 0.68rem;
+      line-height: 1.45;
+      opacity: 0.88;
+    }
+
+    .final-legal p {
+      margin: 0 0 6px;
     }
   </style>
 </head>
@@ -1303,7 +1429,7 @@
     </svg>
 
     <button class="start-button" id="startButton" type="button">Los geht's</button>
-    <p class="volume-hint" id="volumeHint">Bitte erhöhe die Lautstärke.</p>
+    <p class="volume-hint" id="volumeHint">Bitte erhöhe die Lautstärke!</p>
   </main>
 
   <!-- Interaktive Bühne mit Laternen-Hintergrund -->
@@ -1362,15 +1488,36 @@
 
   <!-- RSVP-Formular (erscheint oben, sobald die Katze "STOPP ..." gesagt hat) -->
   <div class="rsvp" id="rsvp" aria-label="Rückmeldung">
-    <input class="rsvp-input" id="rsvpName" type="text" name="name" placeholder="Dein/Eure Namen" aria-label="Dein/Eure Namen"
+    <input class="rsvp-input" id="rsvpName" type="text" name="name" placeholder="Dein Name/Eure Namen" aria-label="Dein Name/Eure Namen"
            autocomplete="name" autocapitalize="words" enterkeyhint="done" maxlength="80">
     <div class="rsvp-buttons">
       <button class="rsvp-btn yes" id="rsvpYes" type="button" data-status="Zusage">Dabei</button>
       <button class="rsvp-btn no" id="rsvpNo" type="button" data-status="Absage">Leider nicht dabei</button>
     </div>
     <p class="rsvp-hint" id="rsvpHint" role="status" aria-live="polite"></p>
+    <button class="rsvp-skip" id="rsvpSkip" type="button">Bereits erledigt</button>
   </div>
   <div class="rsvp-thanks" id="rsvpThanks" role="status" aria-live="polite">Vielen Dank! Deine Rückmeldung wurde gespeichert.</div>
+
+  <!-- Abspann auf dem geschlossenen Vorhang (erscheint, sobald der Vorhang am Ende komplett zu ist) -->
+  <section class="final" id="final" aria-label="Abspann">
+    <div class="final-main">
+      <div class="credits">
+        <p class="credit-line"><span class="label">Idee:</span> Marie &amp; Gino</p>
+        <p class="credit-line"><span class="label">Fotos:</span> privat</p>
+        <p class="credit-line"><span class="label">Texte:</span> Marie</p>
+        <p class="credit-line"><span class="label">Audios:</span> ElevenLabs</p>
+        <p class="credit-line"><span class="label">Soundeffekte:</span> Pixabay</p>
+        <p class="credit-line"><span class="label">Umsetzung:</span> Gino, Gemini &amp; Claude</p>
+        <p class="credit-line"><span class="label">Hosting:</span> GitHub Pages</p>
+      </div>
+      <button class="final-btn" id="replayButton" type="button">Nochmal anschauen</button>
+    </div>
+    <div class="final-legal">
+      <p>© 2026, Middendorf · Alle Rechte vorbehalten.</p>
+      <p>Diese Website ist privat und ausschließlich für Euch als geladene Gäste bestimmt. Bitte gebt den Link nicht weiter und speichert oder verwendet keine Fotos, Audios oder sonstige Inhalte. Danke!</p>
+    </div>
+  </section>
 
   <!--
     Audio-Dateien der Winkekatze:
@@ -1379,7 +1526,7 @@
     - audio_3.mp3: Dritte Sprachnachricht (Memory-Erklärung), nachdem die Katze zwischen den Karten hervorgelugt hat
     - audio_4.mp3: Vierte Sprachnachricht (Lob nach dem Memory, vor dem Niesen)
     - audio_5.mp3: Fünfte Sprachnachricht (Umschlag zur Seite schieben), startet nach der herausgezogenen Einladung
-    - audio_6.mp3: Sechste Sprachnachricht (Danke), startet nach dem Verschwinden des Umschlags
+    - audio_6.mp3: Sechste Sprachnachricht (Danke + Geschenk-Tipp, zwei Sprechblasen), startet nach dem Verschwinden des Umschlags
     - audio_7.mp3: Siebte Sprachnachricht (STOPP, Namen eintragen), startet, sobald der Vorhang die Katze erreicht
     - audio_8.mp3: Achte Sprachnachricht (Verabschiedung), danach schließt sich der Vorhang komplett
     - hatschi.mp3 (Niesen), knall.mp3, richtig.mp3, falsch.mp3: Soundeffekte (werden über Web Audio geladen)
@@ -1422,6 +1569,9 @@
     const rsvpNo = document.getElementById('rsvpNo');
     const rsvpHint = document.getElementById('rsvpHint');
     const rsvpThanks = document.getElementById('rsvpThanks');
+    const rsvpSkip = document.getElementById('rsvpSkip');
+    const finalScreen = document.getElementById('final');
+    const replayButton = document.getElementById('replayButton');
 
     // Konfiguration für Winkekatze:
     // Ist winkekatze.gif vorhanden, wird direkt das GIF genutzt,
@@ -1476,7 +1626,7 @@
 
     // Memory-Ansage (audio_3.mp3), alles in einer einzigen Sprechblase.
     // Hinweis: Anreden (Du, Dich, Dir, Dein, Deine, Euch, Euer) immer großschreiben, falls der Text einmal angepasst wird.
-    const MEMORY_INTRO_TEXT = "Auf geht's. Wir spielen eine Runde Memory gemeinsam. Oben sind Fotos, unten sind Jahreszahlen. Immer ein Foto und eine Jahreszahl gehören zusammen. Decke nacheinander die Memory Karten auf und finde alle Pärchen.";
+    const MEMORY_INTRO_TEXT = "Auf geht's. Wir spielen eine Runde Memory gemeinsam. Oben sind Fotos, unten sind Jahreszahlen. Immer ein Foto und eine Jahreszahl gehören zusammen. Decke nacheinander die Memorykarten auf und finde alle Pärchen.";
     const MEMORY_HINT_TOP_PHRASE = 'Oben sind Fotos';
     const MEMORY_HINT_BOTTOM_PHRASE = 'unten sind Jahreszahlen';
     const MEMORY_INTRO_FALLBACK_DURATION_S = 16;   // Textdauer, falls audio_3.mp3 nicht abgespielt werden kann
@@ -1534,8 +1684,11 @@
     const SLIDE_GLIDE_MAX_MS = 5000;               // Sicherheits-Limit für das Ausgleiten
 
     const SLIDE_AFTER_GONE_MS = 1200;              // Pause (mindestens 1 s) nach dem Verschwinden des Umschlags, dann audio_6.mp3
-    const THANKS_SPEECH_TEXT = 'Super. Danke Dir! Viel mehr habe ich auch gar nicht zu sagen. Ich bin mir sicher, Dirk ist total aus dem Häuschen, wenn Du dabei bist!';   // audio_6.mp3
-    const THANKS_SPEECH_FALLBACK_S = 10;           // Textdauer, falls audio_6.mp3 nicht abgespielt werden kann
+    // audio_6.mp3: zwei Sprechblasen (obere bleibt stehen, dazwischen eine kurze Pause)
+    const THANKS_SPEECH_TEXT_1 = 'Super. Danke Dir! Viel mehr habe ich auch gar nicht zu sagen. Ich bin mir sicher, Dirk ist total aus dem Häuschen, wenn Du dabei bist!';
+    const THANKS_SPEECH_TEXT_2 = 'Pssst, noch ein kleiner Insidertipp, für alle, die noch nach einer Geschenkidee suchen: Ich habe gehört, dass sich Dirk wahnsinnig über einen kleinen Zuschuss für die nächste Reise freuen würde, denn es geht bald mit der AIDA auf die Kanaren.';
+    const THANKS_PAUSE_WEIGHT = 11;                // Länge der Pause zwischen den Sprechblasen im Text-Zeitmaß (ca. 1 Sekunde; größer = längere Pause)
+    const THANKS_SPEECH_FALLBACK_S = 26;           // Textdauer, falls audio_6.mp3 nicht abgespielt werden kann
     const THANKS_SPEECH_HOLD_MS = 900;             // So lange bleibt die fertige Sprechblase nach dem Ende von audio_6.mp3 stehen
 
     const CURTAIN_OPEN_MS = 2300;                  // Vorhang öffnet sich wieder komplett (Transition 2,1 s)
@@ -1544,7 +1697,7 @@
     const CURTAIN_CAT_VISIBLE_RATIO = 0.4;         // Anteil der Katzenbreite (aus getBoundingClientRect), der im Spalt sichtbar bleibt (kleiner = Katze noch weniger zu sehen)
     const CURTAIN_CONTACT_TIMEOUT_MS = 3500;       // Sicherheit: audio_7.mp3 startet spätestens nach dieser Zeit, auch wenn der Kontakt nicht erkannt wird
 
-    const STOP_SPEECH_TEXT = 'STOPP, ich habe etwas vergessen. Trage doch bitte oben Deinen oder Euren Namen ein und sage noch kurz zu oder ab.';   // audio_7.mp3
+    const STOP_SPEECH_TEXT = 'STOPP, ich habe etwas vergessen. Trage doch bitte oben Deinen oder Eure Namen ein und sage noch kurz zu oder ab.';   // audio_7.mp3
     const STOP_SPEECH_FALLBACK_S = 9;              // Textdauer, falls audio_7.mp3 nicht abgespielt werden kann
     const STOP_SPEECH_HOLD_MS = 600;               // Haltezeit der fertigen Sprechblase (sie bleibt danach stehen)
 
@@ -2972,6 +3125,132 @@
       });
     }
 
+    // Zwei Sprechblasen synchron zu einer einzigen Audio-Datei (z. B. audio_6.mp3).
+    // Die Sprechblasen werden nacheinander aufgebaut, dazwischen liegt eine kurze Pause (pauseWeight).
+    // Die obere Sprechblase bleibt stehen, während die untere geschrieben wird.
+    function runCatSpeechTwoParts(audioEl, text1, text2, fallbackDurationS, holdMs, pauseWeight, keepVisible) {
+      return new Promise((resolve) => {
+        resetBubblesForNewSequence();
+
+        const buildCum = (text) => {
+          const cum = [0];
+          for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            let w = ch === ' ' ? 0.6 : 1;
+            if (ch === '.' || ch === '!' || ch === '?' || ch === ':') w += 5;
+            else if (ch === ',') w += 2.5;
+            cum.push(cum[i] + w);
+          }
+          return cum;
+        };
+        const cum1 = buildCum(text1);
+        const cum2 = buildCum(text2);
+        const len1 = text1.length;
+        const len2 = text2.length;
+        const w1 = cum1[len1];
+        const totalWeight = w1 + pauseWeight + cum2[len2];
+
+        const charsFor = (cum, target) => {
+          let lo = 0;
+          let hi = cum.length - 1;
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (cum[mid] <= target) lo = mid;
+            else hi = mid - 1;
+          }
+          return lo;
+        };
+
+        let useFallback = false;
+        let ended = false;
+        let shown1 = 0;
+        let shown2 = 0;
+
+        if (audioEl) {
+          try { audioEl.currentTime = 0; } catch (err) { /* ignorieren */ }
+          audioEl.addEventListener('ended', () => { ended = true; }, { once: true });
+          audioEl.addEventListener('error', () => { useFallback = true; }, { once: true });
+          const p = audioEl.play();
+          if (p && typeof p.catch === 'function') p.catch(() => { useFallback = true; });
+        } else {
+          useFallback = true;
+        }
+
+        const startTime = performance.now();
+
+        function frame() {
+          const wall = (performance.now() - startTime) / 1000;
+          let duration = fallbackDurationS;
+          let t = wall;
+
+          if (!useFallback && audioEl) {
+            if (Number.isFinite(audioEl.duration) && audioEl.duration > 1) {
+              duration = audioEl.duration;
+            }
+            if (ended) {
+              t = duration;
+            } else if (!audioEl.paused && audioEl.currentTime > 0) {
+              t = audioEl.currentTime;
+            } else {
+              t = 0;   // Audio läuft noch nicht: Text wartet
+            }
+          }
+
+          const done = ended || (useFallback && wall >= duration) || wall > duration + 6;
+          const progress = done ? 1 : Math.min(1, t / (duration * MEMORY_INTRO_TEXT_END_RATIO));
+          const target = progress * totalWeight;
+
+          let c1;
+          let c2;
+          if (progress >= 1) {
+            c1 = len1;
+            c2 = len2;
+          } else if (target <= w1) {
+            c1 = charsFor(cum1, target);
+            c2 = 0;
+          } else if (target <= w1 + pauseWeight) {
+            c1 = len1;
+            c2 = 0;
+          } else {
+            c1 = len1;
+            c2 = charsFor(cum2, target - w1 - pauseWeight);
+          }
+          shown1 = Math.max(shown1, c1);
+          shown2 = Math.max(shown2, c2);
+
+          if (shown1 > 0) {
+            speechBubble1.textContent = text1.slice(0, shown1);
+            speechBubble1.classList.remove('hidden-away');
+            speechBubble1.classList.add('visible');
+          }
+          if (shown2 > 0) {
+            speechBubble2.textContent = text2.slice(0, shown2);
+            speechBubble2.classList.remove('hidden-away');
+            speechBubble2.classList.add('visible');
+            speechStack.classList.add('has-second');
+          }
+
+          if (!done) {
+            requestAnimationFrame(frame);
+          } else {
+            speechBubble1.textContent = text1;
+            speechBubble2.textContent = text2;
+            speechBubble1.classList.remove('hidden-away');
+            speechBubble2.classList.remove('hidden-away');
+            speechBubble1.classList.add('visible');
+            speechBubble2.classList.add('visible');
+            speechStack.classList.add('has-second');
+            window.setTimeout(() => {
+              if (!keepVisible) hideBothBubbles();
+              resolve();
+            }, holdMs);
+          }
+        }
+
+        requestAnimationFrame(frame);
+      });
+    }
+
     async function runMemoryFinale() {
       if (finaleStarted) return;
       finaleStarted = true;
@@ -3257,7 +3536,7 @@
       hideBothBubbles();
       speechStack.classList.remove('on-envelope');
       await wait(SLIDE_AFTER_GONE_MS);
-      await runCatSpeech(catAudio6, THANKS_SPEECH_TEXT, THANKS_SPEECH_FALLBACK_S, THANKS_SPEECH_HOLD_MS);
+      await runCatSpeechTwoParts(catAudio6, THANKS_SPEECH_TEXT_1, THANKS_SPEECH_TEXT_2, THANKS_SPEECH_FALLBACK_S, THANKS_SPEECH_HOLD_MS, THANKS_PAUSE_WEIGHT);
 
       // 3) Vorhang schließt sich an der Katze (der Vorhang ist seit dem Finale offen, die Katze steht dahinter)
       await wait(CURTAIN_CAT_BEHIND_PAUSE_MS);
@@ -3308,6 +3587,7 @@
       rsvpYes.disabled = busy;
       rsvpNo.disabled = busy;
       rsvpName.disabled = busy;
+      rsvpSkip.disabled = busy;
     }
 
     async function sendRsvp(name, status) {
@@ -3371,6 +3651,22 @@
       }, 650);   // = Dauer der Ausblend-Transition des Formulars
     }
 
+    // "Bereits erledigt": Formular sofort ausblenden, KEIN Versand an Formspark, Ablauf geht normal weiter
+    function handleRsvpAlreadyDone() {
+      if (rsvpSending || rsvpFinished) return;
+      rsvpFinished = true;
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+      rsvpBox.classList.remove('visible');
+      rsvpBox.setAttribute('aria-hidden', 'true');
+      hideBothBubbles();
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('rsvp-done'));
+      }, 650);   // = Dauer der Ausblend-Transition des Formulars
+    }
+
+    rsvpSkip.addEventListener('click', handleRsvpAlreadyDone);
     rsvpYes.addEventListener('click', () => handleRsvp('Zusage'));
     rsvpNo.addEventListener('click', () => handleRsvp('Absage'));
     rsvpName.addEventListener('input', () => setRsvpHint(''));
@@ -3379,6 +3675,17 @@
         event.preventDefault();
         rsvpName.blur();
       }
+    });
+
+    // Abspann: Der Vorhang bleibt dauerhaft geschlossen, darauf erscheinen Credits, Button und Hinweis
+    window.addEventListener('curtain-closed', () => {
+      window.setTimeout(() => {
+        finalScreen.classList.add('visible');
+      }, 500);
+    }, { once: true });
+
+    replayButton.addEventListener('click', () => {
+      window.location.reload();
     });
 
     window.addEventListener('invitation-shown', () => {
